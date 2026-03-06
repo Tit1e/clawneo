@@ -1,5 +1,31 @@
 # MiniClaw 架构方案
 
+## 当前实现状态
+
+截至当前版本，下面这些部分已经完成：
+
+- 已完成：TypeScript 项目骨架
+- 已完成：`SQLite` 初始化与基础表
+- 已完成：Discord 连接、消息接收、按 `guild/user` allowlist 放行
+- 已完成：`sessionKey` 生成与 transcript 持久化
+- 已完成：Discord 超长回复自动分片发送
+- 已完成：OpenAI Codex OAuth 浏览器授权、`localhost:1455` 回调、auth store 落盘
+- 已完成：运行时优先读取项目 auth profile，并在过期时自动 refresh
+- 已完成：基于 `pi-coding-agent` 的 Codex 对话链路
+- 已完成：`read` / `ls` / `grep` / `bash` 工具接入
+- 已完成：工具开始/结束日志记录
+- 已完成：结构化偏好存储与显式偏好更新
+- 已完成：`SQLite + USER.md` 联合注入 prompt
+- 已完成：基础危险命令硬封禁
+
+下面这些仍未完成，或者只完成了部分：
+
+- 未完成：`USER.md` 双向同步
+- 未完成：统一的工具输出摘要策略
+- 未完成：会话取消 / 中断
+- 未完成：轻量 fact 抽取
+- 部分完成：错误呈现已经比初版清晰，但还没有系统化的审计视图
+
 ## 目标
 
 构建一个精简版、可用的 OpenClaw 风格个人助手，聚焦单一主路径：
@@ -19,7 +45,7 @@
 
 - 接收并回复 Discord 消息
 - 维护按用户或线程隔离的连续会话
-- 使用 OpenAI/Codex 认证后的模型访问能力
+- 使用 OpenAI Codex OAuth 认证后的模型访问能力
 - 支持工具调用，尤其是受控命令执行
 - 跨会话持久化用户偏好
 - 持久化对话 transcript
@@ -115,6 +141,13 @@ MiniClaw 只需要一条窄路径：
 - `USER.md` 保存可人工编辑的用户资料上下文
 
 这是在可维护性和简单性之间最合适的平衡。
+
+### 当前实现对应关系
+
+- 已完成：`SQLite` 作为会话、消息和偏好存储
+- 已完成：transcript append-only 持久化
+- 已完成：`USER.md` 作为补充上下文参与 prompt 构建
+- 未完成：将稳定偏好自动回写到 `USER.md`
 
 ## 为什么不能把所有偏好都放进 USER.md
 
@@ -220,6 +253,17 @@ miniclaw/
       openai-auth.ts
       token-store.ts
 ```
+
+说明：上面是目标结构，不是当前文件树的逐字镜像。当前已经实际存在的关键目录主要是：
+
+- `src/discord`
+- `src/core`
+- `src/agent`
+- `src/auth`
+- `src/tools`
+- `src/preferences`
+- `src/transcripts`
+- `src/store`
 
 ## 数据库表结构
 
@@ -332,6 +376,17 @@ type InboundMessage = {
 - 第一版先忽略纯附件无文本消息
 - 第一版不做 slash commands
 
+### 当前实现状态
+
+- 已完成：`messageCreate` 入站
+- 已完成：机器人自身消息忽略
+- 已完成：按 `DISCORD_ALLOWED_USER_IDS` 放行
+- 已完成：按 `DISCORD_ALLOWED_GUILD_IDS` 放行
+- 已完成：回复自动分片，避免 Discord `2000` 字符限制
+- 未完成：slash commands
+- 未完成：附件处理
+- 未完成：语音
+
 ## 会话服务
 
 会话服务是应用真正的核心。
@@ -425,6 +480,14 @@ MiniClaw 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 
 - 支持工具调用输出
 - 支持工具结果回填后的续跑
 
+### 当前实现状态
+
+- 已完成：OpenAI Codex OAuth 浏览器登录与本地回调
+- 已完成：auth profile 持久化到项目自己的 auth store
+- 已完成：profile 过期后自动 refresh
+- 已完成：基于 `openai-codex-responses` 的运行时路径
+- 未完成：多 profile 管理
+
 ## Agent 运行器
 
 Agent 运行器负责一轮完整执行：
@@ -482,13 +545,13 @@ type BashToolInput = {
 
 ### bash 工具约束
 
-- 只能在配置好的 workspace root 内执行
 - 第一版不支持交互式 TTY
 - 默认 30 秒超时
 - 收集 stdout 和 stderr
 - 大输出自动截断
 - 所有命令执行都要记日志
 - 对明显危险命令做拦截
+- 工具工作目录应可配置，而不是写死在 `workspaceRoot`
 
 ### 初始拒绝规则
 
@@ -498,6 +561,15 @@ type BashToolInput = {
 - 超出工作目录范围的递归删除
 - 直接提权路径
 - 任意后台守护进程
+
+### 当前实现状态
+
+- 已完成：`bash` 工具接入
+- 已完成：工具执行开始/结束日志
+- 已完成：极高风险命令硬封禁
+- 已完成：`toolCwd` 可配置，不再强制锁定 `workspaceRoot`
+- 当前策略：高风险但非硬封禁操作，由 AI 在自然语言层主动确认
+- 未完成：统一的工具输出摘要策略
 
 ### 命令结果结构
 
@@ -635,8 +707,9 @@ Prompt 构建时，偏好解析优先级建议如下：
 ### 最低安全默认值
 
 - 默认只允许单用户或 allowlist
-- 默认只开 DM
-- 命令执行限制在 workspace 内
+- 默认按 `guild/user` allowlist 控制接入
+- 工具执行目录默认取 `MINICLAW_TOOL_CWD`，未配置时回退到 `HOME`
+- 保留危险命令硬封禁
 - 不允许 elevated execution
 - 不允许远程挂载
 - 不允许后台进程管理
@@ -655,36 +728,38 @@ Prompt 构建时，偏好解析优先级建议如下：
 
 ### Phase 1
 
-- 项目骨架
-- SQLite 初始化
-- Discord 连接
-- session key 生成
-- transcript 持久化
+- [x] 项目骨架
+- [x] SQLite 初始化
+- [x] Discord 连接
+- [x] session key 生成
+- [x] transcript 持久化
 
 ### Phase 2
 
-- OpenAI auth 集成
-- agent 运行器
-- 先跑通不带工具的基础回复链路
+- [x] OpenAI Codex OAuth 集成
+- [x] agent 运行器
+- [x] 先跑通不带工具的基础回复链路
 
 ### Phase 3
 
-- bash 工具循环
-- 工具结果回填
-- 输出截断和超时控制
+- [x] bash 工具循环
+- [x] 工具结果回填
+- [x] Discord 回复分片
+- [x] bash 超时控制
+- [ ] 工具输出摘要
 
 ### Phase 4
 
-- 结构化偏好存储
-- 显式偏好更新
-- Prompt 偏好注入
-- `USER.md` 同步
+- [x] 结构化偏好存储
+- [x] 显式偏好更新
+- [x] Prompt 偏好注入
+- [ ] `USER.md` 同步
 
 ### Phase 5
 
-- 取消 run
-- 更好的错误呈现
-- 可选的轻量 fact 抽取
+- [ ] 取消 run
+- [~] 更好的错误呈现
+- [ ] 可选的轻量 fact 抽取
 
 ## 最终建议
 

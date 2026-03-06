@@ -5,6 +5,7 @@ import {
   detectExplicitPreferenceUpdates,
   formatPreferenceSummary,
 } from "../preferences/explicit-updates.js";
+import { syncUserProfileFile } from "../preferences/user-profile-sync.js";
 import { buildPromptContext } from "./prompt-builder.js";
 import { createSessionStore } from "./session-store.js";
 import type { AppConfig, InboundMessage } from "./types.js";
@@ -51,6 +52,15 @@ export function createConversationService({
       }
 
       const preferences = sessionStore.listPreferences(message.userId);
+      if (explicitPreferenceUpdates.length > 0) {
+        try {
+          syncUserProfileFile(config.agent.userProfilePath, preferences);
+        } catch (error) {
+          console.error(`[conversation] failed to sync USER.md for user=${message.userId}`);
+          console.error(error);
+        }
+      }
+
       const transcript = sessionStore.listRecentMessages(message.sessionKey, 20);
       const promptContext = buildPromptContext({
         config,
