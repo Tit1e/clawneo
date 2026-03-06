@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node --import tsx src/index.ts",
     "dev": "node --import tsx --watch src/index.ts",
+    "auth:login": "node --import tsx src/auth/login.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.55.3",
     "discord.js": "^14.23.2"
   },
   "devDependencies": {

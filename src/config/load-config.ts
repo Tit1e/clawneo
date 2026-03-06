@@ -55,11 +55,13 @@ export function loadConfig(): AppConfig {
 
   const dbPath = resolvePath(process.env.MINICLAW_DB_PATH, "data/miniclaw.db");
   const transcriptDir = resolvePath(process.env.MINICLAW_TRANSCRIPT_DIR, "data/transcripts");
+  const authStorePath = resolvePath(process.env.MINICLAW_AUTH_STORE_PATH, "data/auth-profiles.json");
   const workspaceRoot = resolvePath(process.env.MINICLAW_WORKSPACE_ROOT, "workspace");
   const userProfilePath = resolvePath(process.env.MINICLAW_USER_PROFILE_PATH, "USER.md");
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.mkdirSync(transcriptDir, { recursive: true });
+  fs.mkdirSync(path.dirname(authStorePath), { recursive: true });
   fs.mkdirSync(workspaceRoot, { recursive: true });
 
   return {
@@ -76,6 +78,7 @@ export function loadConfig(): AppConfig {
     runtime: {
       dbPath,
       transcriptDir,
+      authStorePath,
     },
   };
 }

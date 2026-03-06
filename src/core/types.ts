@@ -12,6 +12,7 @@ export type AppConfig = {
   runtime: {
     dbPath: string;
     transcriptDir: string;
+    authStorePath: string;
   };
 };
 

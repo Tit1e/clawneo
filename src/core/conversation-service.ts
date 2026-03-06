@@ -1,16 +1,9 @@
 import crypto from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
+import { generateModelReply } from "../agent/model-client.js";
 import { buildPromptContext } from "./prompt-builder.js";
 import { createSessionStore } from "./session-store.js";
-import type { AppConfig, InboundMessage, UserPreferences } from "./types.js";
-
-function buildPlaceholderReply(message: InboundMessage, preferences: UserPreferences): string {
-  const language = preferences.response_language || "zh-CN";
-  if (language === "en-US") {
-    return `MiniClaw has received your message: ${message.text}`;
-  }
-  return `MiniClaw 已收到你的消息：${message.text}`;
-}
+import type { AppConfig, InboundMessage } from "./types.js";
 
 type TranscriptStore = {
   append: (entry: {
@@ -50,13 +43,30 @@ export function createConversationService({
 
       const preferences = sessionStore.listPreferences(message.userId);
       const transcript = sessionStore.listRecentMessages(message.sessionKey, 20);
-      buildPromptContext({
+      const promptContext = buildPromptContext({
         config,
         preferences,
         transcript,
       });
 
-      const reply = buildPlaceholderReply(message, preferences);
+      let reply: string;
+      try {
+        reply = await generateModelReply({
+          config,
+          systemPrompt: promptContext.systemPrompt,
+          transcript,
+          sessionKey: message.sessionKey,
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.error(`[conversation] model request failed for session=${message.sessionKey}`);
+        console.error(error);
+        reply =
+          preferences.response_language === "en-US"
+            ? `Model request failed: ${reason}`
+            : `模型请求失败：${reason}`;
+      }
+
       console.log(
         `[conversation] replying to session=${message.sessionKey} user=${message.userId} text=${JSON.stringify(reply)}`,
       );
