@@ -6,6 +6,7 @@ export type AuthProfileCredential =
       refresh: string;
       expires: number;
       email?: string;
+      accountId?: string;
     }
   | {
       type: "token";
@@ -13,6 +14,7 @@ export type AuthProfileCredential =
       token: string;
       expires?: number;
       email?: string;
+      accountId?: string;
     };
 
 export type AuthProfileStore = {

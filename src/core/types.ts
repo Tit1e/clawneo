@@ -2,11 +2,12 @@ export type AppConfig = {
   discord: {
     token: string;
     allowedUserIds: string[];
-    allowedChannelIds: string[];
+    allowedGuildIds: string[];
   };
   agent: {
     model: string;
     workspaceRoot: string;
+    toolCwd: string;
     userProfilePath: string;
   };
   runtime: {
@@ -39,3 +40,21 @@ export type StoredMessage = {
 };
 
 export type UserPreferences = Record<string, unknown>;
+
+export type ToolExecutionRecord = {
+  toolName: string;
+  content: string;
+  isError: boolean;
+};
+
+export type PendingCommandApproval = {
+  sessionKey: string;
+  userId: string;
+  command: string;
+  createdAt: string;
+};
+
+export type ModelReplyResult = {
+  reply: string;
+  toolEvents: ToolExecutionRecord[];
+};

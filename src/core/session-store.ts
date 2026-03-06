@@ -1,5 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { InboundMessage, StoredMessage, UserPreferences } from "./types.js";
+import type {
+  InboundMessage,
+  PendingCommandApproval,
+  StoredMessage,
+  UserPreferences,
+} from "./types.js";
+import type { PreferenceUpdate } from "../preferences/explicit-updates.js";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -17,6 +23,13 @@ type SessionMessageRow = {
 type PreferenceRow = {
   key: string;
   value_json: string;
+};
+
+type PendingApprovalRow = {
+  session_key: string;
+  user_id: string;
+  command: string;
+  created_at: string;
 };
 
 export function createSessionStore(db: DatabaseSync) {
@@ -68,6 +81,59 @@ export function createSessionStore(db: DatabaseSync) {
     ORDER BY key ASC
   `);
 
+  const upsertPreferenceStatement = db.prepare(`
+    INSERT INTO user_preferences (
+      user_id,
+      key,
+      value_json,
+      source,
+      confidence,
+      updated_at
+    ) VALUES (
+      @user_id,
+      @key,
+      @value_json,
+      @source,
+      @confidence,
+      @updated_at
+    )
+    ON CONFLICT(user_id, key) DO UPDATE SET
+      value_json = excluded.value_json,
+      source = excluded.source,
+      confidence = excluded.confidence,
+      updated_at = excluded.updated_at
+  `);
+
+  const getPendingApprovalStatement = db.prepare(`
+    SELECT session_key, user_id, command, created_at
+    FROM pending_command_approvals
+    WHERE session_key = ?
+    LIMIT 1
+  `);
+
+  const upsertPendingApprovalStatement = db.prepare(`
+    INSERT INTO pending_command_approvals (
+      session_key,
+      user_id,
+      command,
+      created_at
+    ) VALUES (
+      @session_key,
+      @user_id,
+      @command,
+      @created_at
+    )
+    ON CONFLICT(session_key) DO UPDATE SET
+      user_id = excluded.user_id,
+      command = excluded.command,
+      created_at = excluded.created_at
+  `);
+
+  const deletePendingApprovalStatement = db.prepare(`
+    DELETE FROM pending_command_approvals
+    WHERE session_key = ?
+  `);
+
   return {
     ensureSession(message: InboundMessage): void {
       const timestamp = message.createdAt || nowIso();
@@ -105,6 +171,42 @@ export function createSessionStore(db: DatabaseSync) {
         }
       }
       return preferences;
+    },
+    applyPreferenceUpdates(userId: string, updates: PreferenceUpdate[]): void {
+      const timestamp = nowIso();
+      for (const update of updates) {
+        upsertPreferenceStatement.run({
+          user_id: userId,
+          key: update.key,
+          value_json: JSON.stringify(update.value),
+          source: update.source,
+          confidence: update.confidence,
+          updated_at: timestamp,
+        });
+      }
+    },
+    getPendingApproval(sessionKey: string): PendingCommandApproval | null {
+      const row = getPendingApprovalStatement.get(sessionKey) as PendingApprovalRow | undefined;
+      if (!row) {
+        return null;
+      }
+      return {
+        sessionKey: row.session_key,
+        userId: row.user_id,
+        command: row.command,
+        createdAt: row.created_at,
+      };
+    },
+    setPendingApproval(params: { sessionKey: string; userId: string; command: string }): void {
+      upsertPendingApprovalStatement.run({
+        session_key: params.sessionKey,
+        user_id: params.userId,
+        command: params.command,
+        created_at: nowIso(),
+      });
+    },
+    clearPendingApproval(sessionKey: string): void {
+      deletePendingApprovalStatement.run(sessionKey);
     },
   };
 }

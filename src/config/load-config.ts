@@ -57,6 +57,10 @@ export function loadConfig(): AppConfig {
   const transcriptDir = resolvePath(process.env.MINICLAW_TRANSCRIPT_DIR, "data/transcripts");
   const authStorePath = resolvePath(process.env.MINICLAW_AUTH_STORE_PATH, "data/auth-profiles.json");
   const workspaceRoot = resolvePath(process.env.MINICLAW_WORKSPACE_ROOT, "workspace");
+  const toolCwd = resolvePath(
+    process.env.MINICLAW_TOOL_CWD,
+    process.env.HOME || process.cwd(),
+  );
   const userProfilePath = resolvePath(process.env.MINICLAW_USER_PROFILE_PATH, "USER.md");
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -68,11 +72,14 @@ export function loadConfig(): AppConfig {
     discord: {
       token: process.env.DISCORD_TOKEN?.trim() || "",
       allowedUserIds: readOptionalList(process.env.DISCORD_ALLOWED_USER_IDS),
-      allowedChannelIds: readOptionalList(process.env.DISCORD_ALLOWED_CHANNEL_IDS),
+      allowedGuildIds: readOptionalList(
+        process.env.DISCORD_ALLOWED_GUILD_IDS || process.env.DISCORD_ALLOWED_CHANNEL_IDS,
+      ),
     },
     agent: {
       model: process.env.MINICLAW_MODEL?.trim() || "gpt-5-codex",
       workspaceRoot,
+      toolCwd,
       userProfilePath,
     },
     runtime: {

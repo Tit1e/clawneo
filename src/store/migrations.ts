@@ -34,4 +34,12 @@ export const MIGRATIONS: string[] = [
       PRIMARY KEY (user_id, key)
     )
   `,
+  `
+    CREATE TABLE IF NOT EXISTS pending_command_approvals (
+      session_key TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      command TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `,
 ];

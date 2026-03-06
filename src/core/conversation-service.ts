@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { generateModelReply } from "../agent/model-client.js";
+import {
+  detectExplicitPreferenceUpdates,
+  formatPreferenceSummary,
+} from "../preferences/explicit-updates.js";
 import { buildPromptContext } from "./prompt-builder.js";
 import { createSessionStore } from "./session-store.js";
 import type { AppConfig, InboundMessage } from "./types.js";
@@ -41,6 +45,11 @@ export function createConversationService({
         createdAt: message.createdAt,
       });
 
+      const explicitPreferenceUpdates = detectExplicitPreferenceUpdates(message.text);
+      if (explicitPreferenceUpdates.length > 0) {
+        sessionStore.applyPreferenceUpdates(message.userId, explicitPreferenceUpdates);
+      }
+
       const preferences = sessionStore.listPreferences(message.userId);
       const transcript = sessionStore.listRecentMessages(message.sessionKey, 20);
       const promptContext = buildPromptContext({
@@ -50,13 +59,26 @@ export function createConversationService({
       });
 
       let reply: string;
+      let toolEvents: Array<{ toolName: string; content: string; isError: boolean }> = [];
       try {
-        reply = await generateModelReply({
+        const result = await generateModelReply({
           config,
           systemPrompt: promptContext.systemPrompt,
           transcript,
           sessionKey: message.sessionKey,
         });
+        reply = result.reply;
+        toolEvents = result.toolEvents;
+        if (explicitPreferenceUpdates.length > 0) {
+          const updatedPreferenceLines = formatPreferenceSummary(
+            Object.fromEntries(explicitPreferenceUpdates.map((update) => [update.key, update.value])),
+          );
+          const prefix =
+            preferences.response_language === "en-US"
+              ? `Updated preferences:\n${updatedPreferenceLines.join("\n")}\n\n`
+              : `已更新偏好：\n${updatedPreferenceLines.join("\n")}\n\n`;
+          reply = `${prefix}${reply}`.trim();
+        }
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         console.error(`[conversation] model request failed for session=${message.sessionKey}`);
@@ -70,6 +92,14 @@ export function createConversationService({
       console.log(
         `[conversation] replying to session=${message.sessionKey} user=${message.userId} text=${JSON.stringify(reply)}`,
       );
+      for (const toolEvent of toolEvents) {
+        transcriptStore.append({
+          id: crypto.randomUUID(),
+          sessionKey: message.sessionKey,
+          role: "tool",
+          content: `[${toolEvent.toolName}] ${toolEvent.isError ? "error" : "ok"}\n${toolEvent.content}`,
+        });
+      }
       transcriptStore.append({
         id: crypto.randomUUID(),
         sessionKey: message.sessionKey,

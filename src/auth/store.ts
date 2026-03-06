@@ -39,8 +39,8 @@ export function saveAuthStore(storePath: string, store: AuthProfileStore): void 
   fs.writeFileSync(storePath, `${JSON.stringify(store, null, 2)}\n`);
 }
 
-export function buildOpenAICodexProfileId(email?: string): string {
-  return `openai-codex:${email?.trim() || "default"}`;
+export function buildOpenAICodexProfileId(identity?: string): string {
+  return `openai-codex:${identity?.trim() || "default"}`;
 }
 
 export function upsertAuthProfile(params: {

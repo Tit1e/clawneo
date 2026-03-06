@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { Message } from "discord.js";
 import { resolveSessionKey } from "../core/session-key.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
+import { sendChunkedDiscordReply } from "./reply.js";
 
 type AllowDecision = {
   allowed: boolean;
@@ -14,16 +15,23 @@ function isAllowedMessage(message: Message, config: AppConfig): AllowDecision {
   }
 
   const userRestricted = config.discord.allowedUserIds.length > 0;
-  const channelRestricted = config.discord.allowedChannelIds.length > 0;
+  const guildRestricted = config.discord.allowedGuildIds.length > 0;
 
   if (userRestricted && !config.discord.allowedUserIds.includes(message.author.id)) {
     return { allowed: false, reason: `user ${message.author.id} not in DISCORD_ALLOWED_USER_IDS` };
   }
 
-  if (channelRestricted && !config.discord.allowedChannelIds.includes(message.channelId)) {
+  if (guildRestricted && !message.guildId) {
     return {
       allowed: false,
-      reason: `channel ${message.channelId} not in DISCORD_ALLOWED_CHANNEL_IDS`,
+      reason: "message is not in a guild but DISCORD_ALLOWED_GUILD_IDS is configured",
+    };
+  }
+
+  if (guildRestricted && !config.discord.allowedGuildIds.includes(message.guildId || "")) {
+    return {
+      allowed: false,
+      reason: `guild ${message.guildId} not in DISCORD_ALLOWED_GUILD_IDS`,
     };
   }
 
@@ -60,7 +68,7 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       threadId: message.channel.isThread() ? message.channel.id : undefined,
       text,
       createdAt: new Date(message.createdTimestamp || Date.now()).toISOString(),
-      reply: async (content: string) => message.reply(content),
+      reply: async (content: string) => sendChunkedDiscordReply(content, (chunk) => message.reply(chunk)),
     };
 
     const normalized: InboundMessage = {

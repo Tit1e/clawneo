@@ -1,5 +1,5 @@
-import type { AppConfig, StoredMessage } from "../core/types.js";
-import { generatePiCodexReply } from "./pi-codex-runtime.js";
+import type { AppConfig, ModelReplyResult, StoredMessage } from "../core/types.js";
+import { generateAgentReply } from "./pi-agent-runtime.js";
 
 type GenerateReplyParams = {
   config: AppConfig;
@@ -13,8 +13,8 @@ export async function generateModelReply({
   systemPrompt,
   transcript,
   sessionKey,
-}: GenerateReplyParams): Promise<string> {
-  return generatePiCodexReply({
+}: GenerateReplyParams): Promise<ModelReplyResult> {
+  return generateAgentReply({
     config,
     systemPrompt,
     transcript,
