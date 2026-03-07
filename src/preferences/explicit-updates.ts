@@ -11,6 +11,45 @@ function hasAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+function hasPreferenceIntent(text: string): boolean {
+  return hasAny(text, [
+    /以后/,
+    /默认/,
+    /偏好/,
+    /习惯/,
+    /请记住/,
+    /记住这个/,
+    /from now on/,
+    /by default/,
+    /prefer/,
+    /preference/,
+    /remember this/,
+  ]);
+}
+
+function hasLanguageIntent(text: string): boolean {
+  return (
+    hasPreferenceIntent(text) ||
+    hasAny(text, [
+      /用中文回答/,
+      /中文回答/,
+      /用英文回答/,
+      /英文回答/,
+      /reply in chinese/,
+      /reply in english/,
+      /speak chinese/,
+      /speak english/,
+    ])
+  );
+}
+
+function hasAnswerStyleIntent(text: string): boolean {
+  return (
+    hasPreferenceIntent(text) ||
+    hasAny(text, [/回答/, /回复/, /answer/, /reply/])
+  );
+}
+
 export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[] {
   const normalized = text.trim().toLowerCase();
   if (!normalized) {
@@ -20,6 +59,7 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
   const updates: PreferenceUpdate[] = [];
 
   if (
+    hasLanguageIntent(normalized) &&
     hasAny(normalized, [/用中文/, /中文回答/, /简体中文/, /speak chinese/, /reply in chinese/]) &&
     !hasAny(normalized, [/英文/, /english/])
   ) {
@@ -31,7 +71,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/用英文/, /英文回答/, /reply in english/, /speak english/])) {
+  if (
+    hasLanguageIntent(normalized) &&
+    hasAny(normalized, [/用英文/, /英文回答/, /reply in english/, /speak english/])
+  ) {
     updates.push({
       key: "response_language",
       value: "en-US",
@@ -40,7 +83,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/简洁/, /简短/, /短一点/, /concise/, /brief/])) {
+  if (
+    hasAnswerStyleIntent(normalized) &&
+    hasAny(normalized, [/简洁/, /简短/, /短一点/, /concise/, /brief/])
+  ) {
     updates.push({
       key: "answer_style",
       value: "concise",
@@ -49,7 +95,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/详细/, /详细一点/, /展开/, /detailed/, /more detail/])) {
+  if (
+    hasAnswerStyleIntent(normalized) &&
+    hasAny(normalized, [/详细/, /详细一点/, /展开/, /detailed/, /more detail/])
+  ) {
     updates.push({
       key: "answer_style",
       value: "detailed",
@@ -58,7 +107,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/默认用pnpm/, /用pnpm/, /\bpnpm\b/])) {
+  if (
+    hasPreferenceIntent(normalized) &&
+    hasAny(normalized, [/默认用pnpm/, /用pnpm/, /\bpnpm\b/])
+  ) {
     updates.push({
       key: "package_manager",
       value: "pnpm",
@@ -67,7 +119,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/默认用npm/, /用npm/, /\bnpm\b/])) {
+  if (
+    hasPreferenceIntent(normalized) &&
+    hasAny(normalized, [/默认用npm/, /用npm/, /\bnpm\b/])
+  ) {
     updates.push({
       key: "package_manager",
       value: "npm",
@@ -76,7 +131,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/默认用yarn/, /用yarn/, /\byarn\b/])) {
+  if (
+    hasPreferenceIntent(normalized) &&
+    hasAny(normalized, [/默认用yarn/, /用yarn/, /\byarn\b/])
+  ) {
     updates.push({
       key: "package_manager",
       value: "yarn",
@@ -110,7 +168,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/\bzsh\b/, /默认 shell 是 zsh/, /shell 用 zsh/])) {
+  if (
+    hasPreferenceIntent(normalized) &&
+    hasAny(normalized, [/\bzsh\b/, /默认 shell 是 zsh/, /shell 用 zsh/])
+  ) {
     updates.push({
       key: "shell",
       value: "zsh",
@@ -119,7 +180,10 @@ export function detectExplicitPreferenceUpdates(text: string): PreferenceUpdate[
     });
   }
 
-  if (hasAny(normalized, [/\bbash\b/, /默认 shell 是 bash/, /shell 用 bash/])) {
+  if (
+    hasPreferenceIntent(normalized) &&
+    hasAny(normalized, [/\bbash\b/, /默认 shell 是 bash/, /shell 用 bash/])
+  ) {
     updates.push({
       key: "shell",
       value: "bash",

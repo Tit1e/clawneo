@@ -11,6 +11,7 @@
 - 已完成：Discord 超长回复自动分片发送
 - 已完成：OpenAI Codex OAuth 浏览器授权、`localhost:1455` 回调、auth store 落盘
 - 已完成：运行时优先读取项目 auth profile，并在过期时自动 refresh
+- 已完成：auth store 使用显式 `defaultProfileId` 选择当前默认 OAuth profile，避免旧 `openai-codex:default` 抢占
 - 已完成：基于 `pi-coding-agent` 的 Codex 对话链路
 - 已完成：`read` / `ls` / `grep` / `bash` 工具接入
 - 已完成：工具开始/结束日志记录
@@ -382,6 +383,7 @@ type InboundMessage = {
 - 已完成：机器人自身消息忽略
 - 已完成：按 `DISCORD_ALLOWED_USER_IDS` 放行
 - 已完成：按 `DISCORD_ALLOWED_GUILD_IDS` 放行
+- 已完成：在支持的 channel 上发送 typing 状态，并做兼容保护
 - 已完成：回复自动分片，避免 Discord `2000` 字符限制
 - 未完成：slash commands
 - 未完成：附件处理
@@ -472,6 +474,14 @@ MiniClaw 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 
 - 检查有效期
 - 必要时刷新 token
 - 为模型层返回 bearer token 或可用凭证
+
+### 当前 auth store 约定
+
+- auth store 保存在 `data/auth-profiles.json`
+- 每次成功登录后，会把该 profile 记录为 `defaultProfileId`
+- 运行时优先读取 `defaultProfileId` 指向的 profile，而不是按文件内键名字典序挑选
+- 对旧格式 auth store 保持兼容
+- 旧的 `openai-codex:default` 只作为兼容遗留项，不再应当成为默认选择依据
 
 ### 模型层职责
 

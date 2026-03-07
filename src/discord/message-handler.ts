@@ -43,6 +43,12 @@ type MessageHandlerParams = {
   onMessage: (message: InboundMessage) => Promise<void>;
 };
 
+function canSendTyping(channel: Message["channel"]): channel is Message["channel"] & {
+  sendTyping: () => Promise<unknown>;
+} {
+  return typeof (channel as { sendTyping?: unknown }).sendTyping === "function";
+}
+
 export function createDiscordMessageHandler({ config, onMessage }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
@@ -79,6 +85,30 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
     console.log(
       `[discord] inbound message ${normalized.messageId} session=${normalized.sessionKey} user=${normalized.userId} channel=${normalized.channelId}`,
     );
-    await onMessage(normalized);
+
+    if (canSendTyping(message.channel)) {
+      try {
+        await message.channel.sendTyping();
+      } catch (error) {
+        console.error(`[discord] failed to send typing for message ${message.id}`);
+        console.error(error);
+      }
+    }
+
+    const typingInterval = setInterval(() => {
+      if (!canSendTyping(message.channel)) {
+        return;
+      }
+      void message.channel.sendTyping().catch((error: unknown) => {
+        console.error(`[discord] failed to refresh typing for message ${message.id}`);
+        console.error(error);
+      });
+    }, 8000);
+
+    try {
+      await onMessage(normalized);
+    } finally {
+      clearInterval(typingInterval);
+    }
   };
 }

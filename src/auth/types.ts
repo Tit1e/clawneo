@@ -20,4 +20,5 @@ export type AuthProfileCredential =
 export type AuthProfileStore = {
   version: 1;
   profiles: Record<string, AuthProfileCredential>;
+  defaultProfileId?: string;
 };

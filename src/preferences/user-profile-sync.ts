@@ -51,9 +51,8 @@ const MANAGED_PREFERENCES: ManagedPreference[] = [
   },
 ];
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const MANAGED_BLOCK_START = "<!-- miniclaw:preferences:start -->";
+const MANAGED_BLOCK_END = "<!-- miniclaw:preferences:end -->";
 
 function buildManagedLines(preferences: UserPreferences): string[] {
   return MANAGED_PREFERENCES.flatMap(({ key, label, format }) => {
@@ -64,25 +63,60 @@ function buildManagedLines(preferences: UserPreferences): string[] {
   });
 }
 
-function upsertManagedLine(lines: string[], headingIndex: number, nextHeadingIndex: number, line: string): void {
-  const label = line.slice(2, line.indexOf(":"));
-  const matcher = new RegExp(`^- ${escapeRegExp(label)}:.*$`);
+function ensureUserProfileHeading(lines: string[]): number {
+  let headingIndex = lines.findIndex((line) => line.trim() === "# User Profile");
+  if (headingIndex !== -1) {
+    return headingIndex;
+  }
 
-  for (let index = 0; index < lines.length; index += 1) {
-    if (matcher.test(lines[index])) {
-      lines[index] = line;
-      return;
+  if (lines.length > 1 || lines[0]?.trim() !== "") {
+    if (lines[lines.length - 1]?.trim() !== "") {
+      lines.push("");
     }
+    lines.push("# User Profile", "");
+  } else {
+    lines[0] = "# User Profile";
+    lines.push("");
+  }
+
+  headingIndex = lines.findIndex((line) => line.trim() === "# User Profile");
+  return headingIndex;
+}
+
+function findNextHeadingIndex(lines: string[], headingIndex: number): number {
+  const nextHeadingIndex = lines.findIndex(
+    (line, index) => index > headingIndex && /^#{1,6}\s+/.test(line.trim()),
+  );
+  return nextHeadingIndex === -1 ? lines.length : nextHeadingIndex;
+}
+
+function ensureManagedBlock(lines: string[], headingIndex: number, nextHeadingIndex: number): void {
+  const startIndex = lines.findIndex(
+    (line, index) => index > headingIndex && index < nextHeadingIndex && line.trim() === MANAGED_BLOCK_START,
+  );
+  const endIndex = lines.findIndex(
+    (line, index) => index > headingIndex && index < nextHeadingIndex && line.trim() === MANAGED_BLOCK_END,
+  );
+  if (startIndex !== -1 && endIndex !== -1 && startIndex < endIndex) {
+    return;
   }
 
   let insertAt = headingIndex + 1;
   if (insertAt < lines.length && lines[insertAt].trim() === "") {
     insertAt += 1;
   }
-  while (insertAt < nextHeadingIndex && lines[insertAt].startsWith("- ")) {
-    insertAt += 1;
+
+  lines.splice(insertAt, 0, MANAGED_BLOCK_START, MANAGED_BLOCK_END);
+}
+
+function replaceManagedBlock(lines: string[], managedLines: string[]): void {
+  const startIndex = lines.findIndex((line) => line.trim() === MANAGED_BLOCK_START);
+  const endIndex = lines.findIndex((line, index) => index > startIndex && line.trim() === MANAGED_BLOCK_END);
+  if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+    throw new Error("Managed USER.md preference block is missing or malformed.");
   }
-  lines.splice(insertAt, 0, line);
+
+  lines.splice(startIndex + 1, endIndex - startIndex - 1, ...managedLines);
 }
 
 export function syncUserProfileFile(userProfilePath: string, preferences: UserPreferences): void {
@@ -95,40 +129,13 @@ export function syncUserProfileFile(userProfilePath: string, preferences: UserPr
     ? fs.readFileSync(userProfilePath, "utf8")
     : "# User Profile\n";
   const normalizedContent = existingContent.replace(/\r\n/g, "\n");
-  const endsWithNewline = normalizedContent.endsWith("\n");
   const lines = normalizedContent.split("\n");
 
-  let headingIndex = lines.findIndex((line) => line.trim() === "# User Profile");
-  if (headingIndex === -1) {
-    if (lines.length > 1 || lines[0].trim() !== "") {
-      if (lines[lines.length - 1].trim() !== "") {
-        lines.push("");
-      }
-      lines.push("# User Profile", "");
-    } else {
-      lines[0] = "# User Profile";
-      lines.push("");
-    }
-    headingIndex = lines.findIndex((line) => line.trim() === "# User Profile");
-  }
+  const headingIndex = ensureUserProfileHeading(lines);
+  const nextHeadingIndex = findNextHeadingIndex(lines, headingIndex);
+  ensureManagedBlock(lines, headingIndex, nextHeadingIndex);
+  replaceManagedBlock(lines, managedLines);
 
-  let nextHeadingIndex = lines.findIndex(
-    (line, index) => index > headingIndex && /^#{1,6}\s+/.test(line.trim()),
-  );
-  if (nextHeadingIndex === -1) {
-    nextHeadingIndex = lines.length;
-  }
-
-  for (const line of managedLines) {
-    upsertManagedLine(lines, headingIndex, nextHeadingIndex, line);
-    nextHeadingIndex = lines.findIndex(
-      (entry, index) => index > headingIndex && /^#{1,6}\s+/.test(entry.trim()),
-    );
-    if (nextHeadingIndex === -1) {
-      nextHeadingIndex = lines.length;
-    }
-  }
-
-  const output = lines.join("\n").replace(/\n+$/g, "") + (endsWithNewline ? "\n" : "\n");
+  const output = `${lines.join("\n").replace(/\n+$/g, "")}\n`;
   fs.writeFileSync(userProfilePath, output, "utf8");
 }
