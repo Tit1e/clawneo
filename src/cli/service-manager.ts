@@ -61,6 +61,16 @@ export function restartService(): void {
   startService();
 }
 
+export function runDetachedServiceCommand(command: "stop" | "restart"): void {
+  const child = spawn(process.execPath, [...process.execArgv, "src/cli/run-main.ts", command], {
+    cwd: process.cwd(),
+    detached: true,
+    stdio: "ignore",
+    env: process.env,
+  });
+  child.unref();
+}
+
 export function isServiceRunning(): boolean {
   return Boolean(ensureFreshPidState());
 }

@@ -296,3 +296,60 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
 
   return lines.join("\n");
 }
+
+export function renderStatusPlainText(snapshot: StatusSnapshot): string {
+  const lines: string[] = [];
+  lines.push("MiniClaw Status", "");
+
+  lines.push("Process");
+  lines.push(`- running: ${snapshot.process.running ? "yes" : "no"}`);
+  lines.push(`- pid: ${snapshot.process.pid ?? "-"}`);
+  lines.push(
+    `- uptime: ${
+      snapshot.process.uptimeMs ? formatDuration(snapshot.process.uptimeMs) : "-"
+    }`,
+  );
+  lines.push("");
+
+  lines.push("Runtime");
+  lines.push(`- state dir: ${snapshot.runtime.stateDir}`);
+  lines.push(`- config path: ${snapshot.runtime.configPath}`);
+  lines.push(`- pid file: ${snapshot.runtime.pidFile}`);
+  lines.push(`- log file: ${snapshot.runtime.logFile}`);
+  lines.push(`- db path: ${snapshot.runtime.dbPath}`);
+  lines.push(`- transcripts: ${snapshot.runtime.transcriptDir}`);
+  for (const [index, skillsDir] of snapshot.runtime.skillsDirs.entries()) {
+    lines.push(`- skills dir ${index + 1}: ${skillsDir}`);
+  }
+  lines.push("");
+
+  lines.push("Discord");
+  lines.push(`- token: ${snapshot.discord.tokenConfigured ? "yes" : "no"}`);
+  lines.push(`- allowed users: ${snapshot.discord.allowedUsers}`);
+  lines.push(`- allowed guilds: ${snapshot.discord.allowedGuilds}`);
+  lines.push("");
+
+  lines.push("Model");
+  lines.push(`- model: ${snapshot.model.model}`);
+  lines.push(`- default profile: ${snapshot.model.defaultProfileId ?? "-"}`);
+  lines.push(`- profiles: ${snapshot.model.oauthProfileCount}`);
+  lines.push(`- auth usable: ${snapshot.model.authUsable ? "yes" : "no"}`);
+  lines.push(
+    `- token expired: ${
+      snapshot.model.tokenExpired === null ? "-" : snapshot.model.tokenExpired ? "yes" : "no"
+    }`,
+  );
+  lines.push(`- auth store: ${snapshot.model.authStore}`);
+  lines.push("");
+
+  lines.push("Recent log tail");
+  if (snapshot.logs.length === 0) {
+    lines.push("- (no log lines)");
+  } else {
+    for (const line of snapshot.logs) {
+      lines.push(`- ${line}`);
+    }
+  }
+
+  return lines.join("\n");
+}

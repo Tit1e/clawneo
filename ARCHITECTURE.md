@@ -331,6 +331,22 @@ miniclaw/
 - `ui`：启动本地只读 HTTP 服务，不受 `start/stop` 守护进程管理
 - `config`：交互式修改 `~/.miniclaw/miniclaw.json`，每项修改后立即保存；退出时如果检测到关键运行时配置变更，且服务正在运行，则自动执行一次 `restart`
 
+### Discord 系统命令
+
+当前 Discord 已支持一组不经过模型的系统硬路由命令：
+
+- `/status`
+- `/restart`
+- `/stop`
+
+行为约定：
+
+- 这些命令不进入 agent，不写入 transcript，也不污染会话上下文
+- `/status`：直接返回当前本地状态快照
+- `/restart`：先回复确认文本，再由脱离当前 bot 进程的 CLI 子进程执行重启
+- `/stop`：先回复确认文本，再由脱离当前 bot 进程的 CLI 子进程执行停止
+- `/start` 当前不支持通过 Discord 触发，因为 bot 停止后无法依赖自身重新上线
+
 ### 当前状态快照字段
 
 `status --json` 和 `/api/status` 当前共用同一份状态结构：
@@ -524,6 +540,7 @@ type InboundMessage = {
 - 已完成：按 `DISCORD_ALLOWED_GUILD_IDS` 放行
 - 已完成：在支持的 channel 上发送 typing 状态，并做兼容保护
 - 已完成：回复自动分片，避免 Discord `2000` 字符限制
+- 已完成：`/status`、`/restart`、`/stop` 系统命令硬路由
 - 未完成：slash commands
 - 未完成：附件处理
 - 未完成：语音
@@ -929,6 +946,7 @@ Prompt 构建时，偏好解析优先级建议如下：
 - [x] UI 前后端拆分到独立目录
 - [x] UI 自动打开浏览器
 - [x] 配置退出时按需自动重启服务
+- [x] Discord `/status` `/restart` `/stop`
 
 ### Phase 6
 

@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import type { Message } from "discord.js";
+import { collectStatusSnapshot, renderStatusPlainText } from "../cli/status.js";
+import { runDetachedServiceCommand } from "../cli/service-manager.js";
 import { resolveSessionKey } from "../core/session-key.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
 import { sendChunkedDiscordReply } from "./reply.js";
@@ -55,6 +57,15 @@ function canSendMessage(channel: Message["channel"]): channel is Message["channe
   return typeof (channel as { send?: unknown }).send === "function";
 }
 
+async function replyToDiscordMessage(message: Message, content: string): Promise<void> {
+  if (canSendMessage(message.channel)) {
+    const channel = message.channel;
+    await sendChunkedDiscordReply(content, (chunk) => channel.send(chunk));
+    return;
+  }
+  await sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
+}
+
 export function createDiscordMessageHandler({ config, onMessage }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
@@ -68,6 +79,33 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
     const text = message.content?.trim();
     if (!text) {
       console.log(`[discord] skipped message ${message.id}: empty content`);
+      return;
+    }
+
+    if (text === "/status") {
+      console.log(
+        `[discord] system command /status from user=${message.author.id} channel=${message.channelId}`,
+      );
+      const statusText = renderStatusPlainText(collectStatusSnapshot());
+      await replyToDiscordMessage(message, statusText);
+      return;
+    }
+
+    if (text === "/restart") {
+      console.log(
+        `[discord] system command /restart from user=${message.author.id} channel=${message.channelId}`,
+      );
+      await replyToDiscordMessage(message, "MiniClaw 正在重启。");
+      runDetachedServiceCommand("restart");
+      return;
+    }
+
+    if (text === "/stop") {
+      console.log(
+        `[discord] system command /stop from user=${message.author.id} channel=${message.channelId}`,
+      );
+      await replyToDiscordMessage(message, "MiniClaw 正在停止，稍后将离线。");
+      runDetachedServiceCommand("stop");
       return;
     }
 
