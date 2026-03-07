@@ -18,7 +18,9 @@ export async function runApp(): Promise<void> {
   });
 
   if (!config.discord.token) {
-    console.log("MiniClaw initialized. Set DISCORD_TOKEN to enable the Discord adapter.");
+    console.log(
+      `MiniClaw initialized. Set discord.token in ${config.runtime.configPath} to enable the Discord adapter.`,
+    );
     return;
   }
 

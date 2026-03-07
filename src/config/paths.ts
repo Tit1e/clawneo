@@ -39,8 +39,16 @@ export function ensureMiniclawConfigFile(env: NodeJS.ProcessEnv = process.env): 
       configPath,
       `${JSON.stringify(
         {
+          discord: {
+            token: "",
+            allowedUserIds: [],
+            allowedGuildIds: [],
+          },
+          agent: {
+            model: "gpt-5-codex",
+          },
           runtime: {
-            note: "Optional local config scaffold. Environment variables still take precedence.",
+            note: "Primary MiniClaw config file.",
           },
         },
         null,
@@ -68,4 +76,3 @@ export function resolveStateSubPath(
   }
   return path.join(stateDir, trimmed);
 }
-

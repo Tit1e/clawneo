@@ -7,37 +7,41 @@ import {
   resolveStateSubPath,
 } from "./paths.js";
 
-function loadDotEnvFile(): void {
-  const envPath = path.resolve(process.cwd(), ".env");
-  if (!fs.existsSync(envPath)) {
-    return;
-  }
+type JsonConfig = {
+  discord?: {
+    token?: unknown;
+    allowedUserIds?: unknown;
+    allowedGuildIds?: unknown;
+    allowedChannelIds?: unknown;
+  };
+  agent?: {
+    model?: unknown;
+    workspaceRoot?: unknown;
+    toolCwd?: unknown;
+    userProfilePath?: unknown;
+  };
+  runtime?: {
+    dbPath?: unknown;
+    transcriptDir?: unknown;
+    authStorePath?: unknown;
+    stateDir?: unknown;
+  };
+};
 
-  const content = fs.readFileSync(envPath, "utf8");
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
+function readJsonConfig(configPath: string): JsonConfig {
+  try {
+    const raw = fs.readFileSync(configPath, "utf8").trim();
+    if (!raw) {
+      return {};
     }
-
-    const separatorIndex = line.indexOf("=");
-    if (separatorIndex <= 0) {
-      continue;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("config root must be a JSON object");
     }
-
-    const key = line.slice(0, separatorIndex).trim();
-    if (!key || process.env[key] !== undefined) {
-      continue;
-    }
-
-    let value = line.slice(separatorIndex + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    process.env[key] = value;
+    return parsed as JsonConfig;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load MiniClaw config from ${configPath}: ${message}`);
   }
 }
 
@@ -55,33 +59,49 @@ function resolveAbsolutePath(value: string | undefined, fallback: string): strin
   return path.resolve(process.cwd(), value || fallback);
 }
 
-export function loadConfig(): AppConfig {
-  loadDotEnvFile();
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
 
+function readList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter(Boolean);
+}
+
+export function loadConfig(): AppConfig {
   const stateDir = ensureMiniclawStateDir(process.env);
   const configPath = ensureMiniclawConfigFile(process.env);
-  const dbPath = resolveStateSubPath(process.env.MINICLAW_DB_PATH, "miniclaw.db", process.env);
+  const fileConfig = readJsonConfig(configPath);
+  const dbPath = resolveStateSubPath(
+    readString(fileConfig.runtime?.dbPath) ?? process.env.MINICLAW_DB_PATH,
+    "miniclaw.db",
+    process.env,
+  );
   const transcriptDir = resolveStateSubPath(
-    process.env.MINICLAW_TRANSCRIPT_DIR,
+    readString(fileConfig.runtime?.transcriptDir) ?? process.env.MINICLAW_TRANSCRIPT_DIR,
     "transcripts",
     process.env,
   );
   const authStorePath = resolveStateSubPath(
-    process.env.MINICLAW_AUTH_STORE_PATH,
+    readString(fileConfig.runtime?.authStorePath) ?? process.env.MINICLAW_AUTH_STORE_PATH,
     "auth-profiles.json",
     process.env,
   );
   const workspaceRoot = resolveStateSubPath(
-    process.env.MINICLAW_WORKSPACE_ROOT,
+    readString(fileConfig.agent?.workspaceRoot) ?? process.env.MINICLAW_WORKSPACE_ROOT,
     "workspace",
     process.env,
   );
   const toolCwd = resolveAbsolutePath(
-    process.env.MINICLAW_TOOL_CWD,
+    readString(fileConfig.agent?.toolCwd) ?? process.env.MINICLAW_TOOL_CWD,
     process.env.HOME || process.cwd(),
   );
   const userProfilePath = resolveStateSubPath(
-    process.env.MINICLAW_USER_PROFILE_PATH,
+    readString(fileConfig.agent?.userProfilePath) ?? process.env.MINICLAW_USER_PROFILE_PATH,
     path.join("workspace", "USER.md"),
     process.env,
   );
@@ -94,14 +114,21 @@ export function loadConfig(): AppConfig {
 
   return {
     discord: {
-      token: process.env.DISCORD_TOKEN?.trim() || "",
-      allowedUserIds: readOptionalList(process.env.DISCORD_ALLOWED_USER_IDS),
-      allowedGuildIds: readOptionalList(
-        process.env.DISCORD_ALLOWED_GUILD_IDS || process.env.DISCORD_ALLOWED_CHANNEL_IDS,
-      ),
+      token: (readString(fileConfig.discord?.token) ?? process.env.DISCORD_TOKEN?.trim()) || "",
+      allowedUserIds:
+        readList(fileConfig.discord?.allowedUserIds) ??
+        readOptionalList(process.env.DISCORD_ALLOWED_USER_IDS),
+      allowedGuildIds:
+        readList(fileConfig.discord?.allowedGuildIds) ??
+        readList(fileConfig.discord?.allowedChannelIds) ??
+        readOptionalList(
+          process.env.DISCORD_ALLOWED_GUILD_IDS || process.env.DISCORD_ALLOWED_CHANNEL_IDS,
+        ),
     },
     agent: {
-      model: process.env.MINICLAW_MODEL?.trim() || "gpt-5-codex",
+      model:
+        (readString(fileConfig.agent?.model) ?? process.env.MINICLAW_MODEL?.trim()) ||
+        "gpt-5-codex",
       workspaceRoot,
       toolCwd,
       userProfilePath,
