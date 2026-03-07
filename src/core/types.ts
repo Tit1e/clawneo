@@ -11,6 +11,8 @@ export type AppConfig = {
     userProfilePath: string;
   };
   runtime: {
+    stateDir: string;
+    configPath: string;
     dbPath: string;
     transcriptDir: string;
     authStorePath: string;

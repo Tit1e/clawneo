@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import chalk from "chalk";
 import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
+import { ensureMiniclawStateDir, resolveMiniclawStateDir } from "../config/paths.js";
 import { loadConfig } from "../config/load-config.js";
 
 export type StatusSnapshot = {
@@ -12,6 +13,8 @@ export type StatusSnapshot = {
     uptimeMs: number | null;
   };
   runtime: {
+    stateDir: string;
+    configPath: string;
     pidFile: string;
     logFile: string;
     dbPath: string;
@@ -34,7 +37,7 @@ export type StatusSnapshot = {
 };
 
 export function resolveDataDir(): string {
-  return path.resolve(process.cwd(), "data");
+  return resolveMiniclawStateDir();
 }
 
 export function resolvePidPath(): string {
@@ -46,7 +49,7 @@ export function resolveLogPath(): string {
 }
 
 export function ensureDataDir(): void {
-  fs.mkdirSync(resolveDataDir(), { recursive: true });
+  ensureMiniclawStateDir();
 }
 
 export function readPid(): number | null {
@@ -199,6 +202,8 @@ export function collectStatusSnapshot(): StatusSnapshot {
       uptimeMs: runningPid && pidFileMtimeMs ? Date.now() - pidFileMtimeMs : null,
     },
     runtime: {
+      stateDir: config.runtime.stateDir,
+      configPath: config.runtime.configPath,
       pidFile: resolvePidPath(),
       logFile: logPath,
       dbPath: config.runtime.dbPath,
@@ -242,6 +247,8 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
   lines.push("");
 
   lines.push(sectionTitle("Runtime"));
+  lines.push(renderPathField("state dir", snapshot.runtime.stateDir));
+  lines.push(renderPathField("config path", snapshot.runtime.configPath));
   lines.push(renderPathField("pid file", snapshot.runtime.pidFile));
   lines.push(renderPathField("log file", snapshot.runtime.logFile));
   lines.push(renderPathField("db path", snapshot.runtime.dbPath));

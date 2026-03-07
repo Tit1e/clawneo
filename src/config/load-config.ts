@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AppConfig } from "../core/types.js";
+import {
+  ensureMiniclawConfigFile,
+  ensureMiniclawStateDir,
+  resolveStateSubPath,
+} from "./paths.js";
 
 function loadDotEnvFile(): void {
   const envPath = path.resolve(process.cwd(), ".env");
@@ -46,27 +51,46 @@ function readOptionalList(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function resolvePath(value: string | undefined, fallback: string): string {
+function resolveAbsolutePath(value: string | undefined, fallback: string): string {
   return path.resolve(process.cwd(), value || fallback);
 }
 
 export function loadConfig(): AppConfig {
   loadDotEnvFile();
 
-  const dbPath = resolvePath(process.env.MINICLAW_DB_PATH, "data/miniclaw.db");
-  const transcriptDir = resolvePath(process.env.MINICLAW_TRANSCRIPT_DIR, "data/transcripts");
-  const authStorePath = resolvePath(process.env.MINICLAW_AUTH_STORE_PATH, "data/auth-profiles.json");
-  const workspaceRoot = resolvePath(process.env.MINICLAW_WORKSPACE_ROOT, "workspace");
-  const toolCwd = resolvePath(
+  const stateDir = ensureMiniclawStateDir(process.env);
+  const configPath = ensureMiniclawConfigFile(process.env);
+  const dbPath = resolveStateSubPath(process.env.MINICLAW_DB_PATH, "miniclaw.db", process.env);
+  const transcriptDir = resolveStateSubPath(
+    process.env.MINICLAW_TRANSCRIPT_DIR,
+    "transcripts",
+    process.env,
+  );
+  const authStorePath = resolveStateSubPath(
+    process.env.MINICLAW_AUTH_STORE_PATH,
+    "auth-profiles.json",
+    process.env,
+  );
+  const workspaceRoot = resolveStateSubPath(
+    process.env.MINICLAW_WORKSPACE_ROOT,
+    "workspace",
+    process.env,
+  );
+  const toolCwd = resolveAbsolutePath(
     process.env.MINICLAW_TOOL_CWD,
     process.env.HOME || process.cwd(),
   );
-  const userProfilePath = resolvePath(process.env.MINICLAW_USER_PROFILE_PATH, "USER.md");
+  const userProfilePath = resolveStateSubPath(
+    process.env.MINICLAW_USER_PROFILE_PATH,
+    path.join("workspace", "USER.md"),
+    process.env,
+  );
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.mkdirSync(transcriptDir, { recursive: true });
   fs.mkdirSync(path.dirname(authStorePath), { recursive: true });
   fs.mkdirSync(workspaceRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(userProfilePath), { recursive: true });
 
   return {
     discord: {
@@ -83,6 +107,8 @@ export function loadConfig(): AppConfig {
       userProfilePath,
     },
     runtime: {
+      stateDir,
+      configPath,
       dbPath,
       transcriptDir,
       authStorePath,

@@ -150,6 +150,31 @@ MiniClaw 只需要一条窄路径：
 
 这是在可维护性和简单性之间最合适的平衡。
 
+### 默认状态目录
+
+当前默认状态根目录已经统一切到：
+
+- `~/.miniclaw`
+
+也支持用下面两个环境变量覆盖：
+
+- `MINICLAW_STATE_DIR`
+- `MINICLAW_CONFIG_PATH`
+
+默认文件布局如下：
+
+```text
+~/.miniclaw/
+  miniclaw.json
+  miniclaw.db
+  miniclaw.pid
+  miniclaw.log
+  auth-profiles.json
+  transcripts/
+  workspace/
+    USER.md
+```
+
 ### 当前实现对应关系
 
 - 已完成：`SQLite` 作为会话、消息和偏好存储
@@ -226,12 +251,8 @@ MiniClaw 只需要一条窄路径：
 miniclaw/
   package.json
   ARCHITECTURE.md
-  USER.md
   bin/
     miniclaw.mjs
-  data/
-    miniclaw.db
-    transcripts/
   src/
     cli/
       run-main.ts
@@ -301,7 +322,7 @@ miniclaw/
 
 ### 行为约定
 
-- `start`：后台启动服务，写入 `data/miniclaw.pid`，日志输出到 `data/miniclaw.log`
+- `start`：后台启动服务，写入 `~/.miniclaw/miniclaw.pid`，日志输出到 `~/.miniclaw/miniclaw.log`
 - `stop`：按 PID 发送 `SIGTERM`
 - `restart`：先停后启
 - `status`：输出人类可读的本地状态
@@ -320,6 +341,8 @@ type StatusSnapshot = {
     uptimeMs: number | null;
   };
   runtime: {
+    stateDir: string;
+    configPath: string;
     pidFile: string;
     logFile: string;
     dbPath: string;
@@ -433,6 +456,10 @@ CREATE TABLE user_facts (
 ```
 
 ## USER.md 模板建议
+
+默认 `USER.md` 路径现在是：
+
+- `~/.miniclaw/workspace/USER.md`
 
 ```md
 # User Profile
@@ -586,7 +613,7 @@ MiniClaw 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 
 
 ### 当前 auth store 约定
 
-- auth store 保存在 `data/auth-profiles.json`
+- auth store 默认保存在 `~/.miniclaw/auth-profiles.json`
 - 每次成功登录后，会把该 profile 记录为 `defaultProfileId`
 - 运行时优先读取 `defaultProfileId` 指向的 profile，而不是按文件内键名字典序挑选
 - 对旧格式 auth store 保持兼容
@@ -809,11 +836,14 @@ Prompt 构建时，偏好解析优先级建议如下：
   },
   "agent": {
     "model": "gpt-5-codex",
-    "workspaceRoot": "./workspace"
+    "workspaceRoot": "~/.miniclaw/workspace"
   },
   "runtime": {
-    "dbPath": "./data/miniclaw.db",
-    "transcriptDir": "./data/transcripts"
+    "stateDir": "~/.miniclaw",
+    "configPath": "~/.miniclaw/miniclaw.json",
+    "dbPath": "~/.miniclaw/miniclaw.db",
+    "transcriptDir": "~/.miniclaw/transcripts",
+    "authStorePath": "~/.miniclaw/auth-profiles.json"
   }
 }
 ```

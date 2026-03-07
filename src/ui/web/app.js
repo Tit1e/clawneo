@@ -70,6 +70,8 @@ function render(snapshot) {
 
   setText("runtime-pid-file", snapshot.runtime.pidFile);
   setText("runtime-log-file", snapshot.runtime.logFile);
+  setText("runtime-state-dir", snapshot.runtime.stateDir);
+  setText("runtime-config-path", snapshot.runtime.configPath);
   setText("runtime-db-path", snapshot.runtime.dbPath);
   setText("runtime-transcripts", snapshot.runtime.transcriptDir);
 
