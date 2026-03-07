@@ -19,6 +19,7 @@ export type StatusSnapshot = {
     logFile: string;
     dbPath: string;
     transcriptDir: string;
+    skillsDirs: string[];
   };
   discord: {
     tokenConfigured: boolean;
@@ -208,6 +209,7 @@ export function collectStatusSnapshot(): StatusSnapshot {
       logFile: logPath,
       dbPath: config.runtime.dbPath,
       transcriptDir: config.runtime.transcriptDir,
+      skillsDirs: config.runtime.skillsDirs,
     },
     discord: {
       tokenConfigured: Boolean(config.discord.token),
@@ -253,6 +255,9 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
   lines.push(renderPathField("log file", snapshot.runtime.logFile));
   lines.push(renderPathField("db path", snapshot.runtime.dbPath));
   lines.push(renderPathField("transcripts", snapshot.runtime.transcriptDir));
+  for (const [index, skillsDir] of snapshot.runtime.skillsDirs.entries()) {
+    lines.push(renderPathField(`skills dir ${index + 1}`, skillsDir));
+  }
   lines.push("");
 
   lines.push(sectionTitle("Discord"));

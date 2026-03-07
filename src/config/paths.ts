@@ -60,6 +60,14 @@ export function ensureMiniclawConfigFile(env: NodeJS.ProcessEnv = process.env): 
   return configPath;
 }
 
+export function resolveMiniclawSkillsDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveMiniclawStateDir(env), "skills");
+}
+
+export function resolveGlobalAgentsSkillsDir(): string {
+  return path.join(os.homedir(), ".agents", "skills");
+}
+
 export function resolveStateSubPath(
   value: string | undefined,
   fallbackRelativePath: string,

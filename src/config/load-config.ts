@@ -4,6 +4,8 @@ import type { AppConfig } from "../core/types.js";
 import {
   ensureMiniclawConfigFile,
   ensureMiniclawStateDir,
+  resolveGlobalAgentsSkillsDir,
+  resolveMiniclawSkillsDir,
   resolveStateSubPath,
 } from "./paths.js";
 
@@ -104,12 +106,14 @@ export function loadConfig(): AppConfig {
     path.join("workspace", "USER.md"),
     process.env,
   );
+  const skillsDirs = [resolveGlobalAgentsSkillsDir(), resolveMiniclawSkillsDir(process.env)];
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.mkdirSync(transcriptDir, { recursive: true });
   fs.mkdirSync(path.dirname(authStorePath), { recursive: true });
   fs.mkdirSync(workspaceRoot, { recursive: true });
   fs.mkdirSync(path.dirname(userProfilePath), { recursive: true });
+  fs.mkdirSync(resolveMiniclawSkillsDir(process.env), { recursive: true });
 
   return {
     discord: {
@@ -138,6 +142,7 @@ export function loadConfig(): AppConfig {
       dbPath,
       transcriptDir,
       authStorePath,
+      skillsDirs,
     },
   };
 }

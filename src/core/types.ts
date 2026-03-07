@@ -16,6 +16,7 @@ export type AppConfig = {
     dbPath: string;
     transcriptDir: string;
     authStorePath: string;
+    skillsDirs: string[];
   };
 };
 

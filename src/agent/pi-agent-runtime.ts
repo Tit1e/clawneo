@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import {
   AuthStorage,
   createAgentSession,
@@ -6,11 +7,14 @@ import {
   createGrepTool,
   createLsTool,
   createReadTool,
+  loadSkillsFromDir,
   ModelRegistry,
   SessionManager,
   SettingsManager,
   type AgentSessionEvent,
   type ResourceLoader,
+  type ResourceDiagnostic,
+  type Skill,
 } from "@mariozechner/pi-coding-agent";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
@@ -74,7 +78,34 @@ function serializeTranscriptHistory(transcript: StoredMessage[]): string {
     .join("\n\n");
 }
 
-function buildResourceLoader(systemPrompt: string, transcript: StoredMessage[]): ResourceLoader {
+function loadConfiguredSkills(skillDirs: string[]): { skills: Skill[]; diagnostics: ResourceDiagnostic[] } {
+  const skillsByName = new Map<string, Skill>();
+  const diagnostics: ResourceDiagnostic[] = [];
+
+  for (const dir of skillDirs) {
+    if (!dir || !fs.existsSync(dir)) {
+      continue;
+    }
+
+    const result = loadSkillsFromDir({ dir, source: dir });
+    diagnostics.push(...result.diagnostics);
+
+    for (const skill of result.skills) {
+      skillsByName.set(skill.name, skill);
+    }
+  }
+
+  return {
+    skills: [...skillsByName.values()].sort((left, right) => left.name.localeCompare(right.name)),
+    diagnostics,
+  };
+}
+
+function buildResourceLoader(
+  systemPrompt: string,
+  transcript: StoredMessage[],
+  skillDirs: string[],
+): ResourceLoader {
   const historyText = serializeTranscriptHistory(transcript);
   const combinedPrompt = [
     systemPrompt.trim(),
@@ -85,13 +116,14 @@ function buildResourceLoader(systemPrompt: string, transcript: StoredMessage[]):
           "Use the history as context, but answer the latest user message directly.",
         ].join("\n\n")
       : "",
-  ]
+    ]
     .filter(Boolean)
     .join("\n\n");
+  const loadedSkills = loadConfiguredSkills(skillDirs);
 
   return {
     getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
-    getSkills: () => ({ skills: [], diagnostics: [] }),
+    getSkills: () => loadedSkills,
     getPrompts: () => ({ prompts: [], diagnostics: [] }),
     getThemes: () => ({ themes: [], diagnostics: [] }),
     getAgentsFiles: () => ({ agentsFiles: [] }),
@@ -187,7 +219,11 @@ export async function generateAgentReply(params: {
     throw new Error("Unable to resolve an OpenAI Codex access token from the configured OAuth profile.");
   }
 
-  const resourceLoader = buildResourceLoader(params.systemPrompt, params.transcript);
+  const resourceLoader = buildResourceLoader(
+    params.systemPrompt,
+    params.transcript,
+    params.config.runtime.skillsDirs,
+  );
   const { session } = await createAgentSession({
     cwd: params.config.agent.toolCwd,
     authStorage,
