@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniClaw UI</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <h1>MiniClaw UI</h1>
+        <p class="subtitle">Read-only local dashboard for process, runtime, Discord, model, and recent logs.</p>
+      </div>
+      <div class="meta">
+        <div>API: <code>/api/status</code></div>
+        <div id="updated-at">Updated: -</div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Process</h2>
+        <dl>
+          <dt>Running</dt>
+          <dd><span id="process-running" class="badge neutral">-</span></dd>
+          <dt>PID</dt>
+          <dd id="process-pid">-</dd>
+          <dt>Uptime</dt>
+          <dd id="process-uptime">-</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Discord</h2>
+        <dl>
+          <dt>Token</dt>
+          <dd><span id="discord-token" class="badge neutral">-</span></dd>
+          <dt>Allowed users</dt>
+          <dd id="discord-users">-</dd>
+          <dt>Allowed guilds</dt>
+          <dd id="discord-guilds">-</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Runtime</h2>
+        <dl>
+          <dt>PID file</dt>
+          <dd id="runtime-pid-file" class="path">-</dd>
+          <dt>Log file</dt>
+          <dd id="runtime-log-file" class="path">-</dd>
+          <dt>DB path</dt>
+          <dd id="runtime-db-path" class="path">-</dd>
+          <dt>Transcripts</dt>
+          <dd id="runtime-transcripts" class="path">-</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Model</h2>
+        <dl>
+          <dt>Model</dt>
+          <dd id="model-name">-</dd>
+          <dt>Default profile</dt>
+          <dd id="model-default-profile">-</dd>
+          <dt>Auth usable</dt>
+          <dd><span id="model-auth-usable" class="badge neutral">-</span></dd>
+          <dt>Token expired</dt>
+          <dd><span id="model-token-expired" class="badge neutral">-</span></dd>
+          <dt>Profiles</dt>
+          <dd id="model-profiles">-</dd>
+          <dt>Auth store</dt>
+          <dd id="model-auth-store" class="path">-</dd>
+        </dl>
+      </section>
+
+      <section class="card logs">
+        <div class="logs-header">
+          <h2>Recent Logs</h2>
+          <div class="muted">Auto refresh: 5s</div>
+        </div>
+        <div id="logs" class="log-shell">
+          <div class="log-line muted">Loading...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,91 +1,34 @@
 import fs from "node:fs";
-import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
+import chalk from "chalk";
 import { runApp } from "../app.js";
+import {
+  collectStatusSnapshot,
+  ensureDataDir,
+  ensureFreshPidState,
+  removePidFile,
+  renderStatusText,
+  resolveLogPath,
+  readPid,
+  resolvePidPath,
+  writePid,
+} from "./status.js";
+import { runUiServer } from "../ui/server.js";
 
-type CliCommand = "start" | "stop" | "restart" | "serve";
-
-function resolveDataDir(): string {
-  return path.resolve(process.cwd(), "data");
-}
-
-function resolvePidPath(): string {
-  return path.join(resolveDataDir(), "miniclaw.pid");
-}
-
-function resolveLogPath(): string {
-  return path.join(resolveDataDir(), "miniclaw.log");
-}
-
-function ensureDataDir(): void {
-  fs.mkdirSync(resolveDataDir(), { recursive: true });
-}
-
-function readPid(): number | null {
-  const pidPath = resolvePidPath();
-  if (!fs.existsSync(pidPath)) {
-    return null;
-  }
-
-  try {
-    const raw = fs.readFileSync(pidPath, "utf8").trim();
-    const pid = Number.parseInt(raw, 10);
-    return Number.isInteger(pid) && pid > 0 ? pid : null;
-  } catch {
-    return null;
-  }
-}
-
-function removePidFile(): void {
-  const pidPath = resolvePidPath();
-  if (!fs.existsSync(pidPath)) {
-    return;
-  }
-  try {
-    fs.rmSync(pidPath, { force: true });
-  } catch {
-    // ignore cleanup errors
-  }
-}
-
-function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    const code =
-      typeof error === "object" && error && "code" in error ? String(error.code) : undefined;
-    if (code === "ESRCH") {
-      return false;
-    }
-    if (code === "EPERM") {
-      return true;
-    }
-    return false;
-  }
-}
-
-function ensureFreshPidState(): number | null {
-  const pid = readPid();
-  if (!pid) {
-    removePidFile();
-    return null;
-  }
-  if (isProcessRunning(pid)) {
-    return pid;
-  }
-  removePidFile();
-  return null;
-}
-
-function writePid(pid: number): void {
-  ensureDataDir();
-  fs.writeFileSync(resolvePidPath(), `${pid}\n`, "utf8");
-}
+type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve";
 
 function printUsage(): void {
-  console.log("Usage: miniclaw <start|stop|restart>");
+  console.log(`${chalk.bold("Usage:")} miniclaw <start|stop|restart|status|ui>`);
+}
+
+function statusCommand(jsonMode: boolean): void {
+  const snapshot = collectStatusSnapshot();
+  if (jsonMode) {
+    console.log(JSON.stringify(snapshot, null, 2));
+    return;
+  }
+  console.log(renderStatusText(snapshot));
 }
 
 async function runServeCommand(): Promise<void> {
@@ -115,7 +58,7 @@ async function runServeCommand(): Promise<void> {
 function startCommand(): void {
   const runningPid = ensureFreshPidState();
   if (runningPid) {
-    console.log(`MiniClaw is already running (pid ${runningPid}).`);
+    console.log(`${chalk.yellow("MiniClaw is already running")} ${chalk.dim(`(pid ${runningPid})`)}.`);
     return;
   }
 
@@ -139,20 +82,20 @@ function startCommand(): void {
   fs.closeSync(stdoutFd);
   fs.closeSync(stderrFd);
 
-  console.log(`MiniClaw started (pid ${child.pid}).`);
-  console.log(`Log: ${logPath}`);
+  console.log(`${chalk.green("MiniClaw started")} ${chalk.dim(`(pid ${child.pid})`)}.`);
+  console.log(`${chalk.bold("Log:")} ${chalk.dim(logPath)}`);
 }
 
 function stopCommand(): void {
   const runningPid = ensureFreshPidState();
   if (!runningPid) {
-    console.log("MiniClaw is not running.");
+    console.log(chalk.yellow("MiniClaw is not running."));
     return;
   }
 
   process.kill(runningPid, "SIGTERM");
   removePidFile();
-  console.log(`MiniClaw stopped (pid ${runningPid}).`);
+  console.log(`${chalk.green("MiniClaw stopped")} ${chalk.dim(`(pid ${runningPid})`)}.`);
 }
 
 function restartCommand(): void {
@@ -162,6 +105,12 @@ function restartCommand(): void {
 
 export async function runCli(argv: string[] = process.argv): Promise<void> {
   const command = (argv[2]?.trim().toLowerCase() || "start") as CliCommand;
+  const jsonMode = argv.includes("--json");
+  const portArgIndex = argv.indexOf("--port");
+  const port =
+    portArgIndex !== -1 && argv[portArgIndex + 1]
+      ? Number.parseInt(argv[portArgIndex + 1] as string, 10)
+      : 3210;
 
   if (command === "serve") {
     await runServeCommand();
@@ -180,6 +129,16 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 
   if (command === "restart") {
     restartCommand();
+    return;
+  }
+
+  if (command === "status") {
+    statusCommand(jsonMode);
+    return;
+  }
+
+  if (command === "ui") {
+    await runUiServer(Number.isFinite(port) && port > 0 ? port : 3210);
     return;
   }
 
