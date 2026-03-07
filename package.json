@@ -3,9 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "miniclaw": "bin/miniclaw.mjs"
+  },
   "scripts": {
     "start": "node --import tsx src/index.ts",
     "dev": "node --import tsx --watch src/index.ts",
+    "cli": "node --import tsx src/cli/run-main.ts",
     "auth:login": "node --import tsx src/auth/login.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -49,6 +49,12 @@ function canSendTyping(channel: Message["channel"]): channel is Message["channel
   return typeof (channel as { sendTyping?: unknown }).sendTyping === "function";
 }
 
+function canSendMessage(channel: Message["channel"]): channel is Message["channel"] & {
+  send: (content: string) => Promise<unknown>;
+} {
+  return typeof (channel as { send?: unknown }).send === "function";
+}
+
 export function createDiscordMessageHandler({ config, onMessage }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
@@ -74,7 +80,13 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       threadId: message.channel.isThread() ? message.channel.id : undefined,
       text,
       createdAt: new Date(message.createdTimestamp || Date.now()).toISOString(),
-      reply: async (content: string) => sendChunkedDiscordReply(content, (chunk) => message.reply(chunk)),
+      reply: async (content: string) => {
+        if (canSendMessage(message.channel)) {
+          const channel = message.channel;
+          return sendChunkedDiscordReply(content, (chunk) => channel.send(chunk));
+        }
+        return sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
+      },
     };
 
     const normalized: InboundMessage = {
