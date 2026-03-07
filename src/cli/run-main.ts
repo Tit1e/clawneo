@@ -1,21 +1,13 @@
-import fs from "node:fs";
 import process from "node:process";
-import { spawn } from "node:child_process";
 import chalk from "chalk";
 import { runApp } from "../app.js";
 import {
   collectStatusSnapshot,
-  ensureDataDir,
-  ensureFreshPidState,
-  removePidFile,
   renderStatusText,
-  resolveLogPath,
-  readPid,
-  resolvePidPath,
-  writePid,
 } from "./status.js";
 import { runUiServer } from "../ui/server.js";
 import { runConfigCommand } from "./config.js";
+import { registerServeProcessLifecycle, restartService, startService, stopService } from "./service-manager.js";
 
 type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve" | "config";
 
@@ -33,75 +25,8 @@ function statusCommand(jsonMode: boolean): void {
 }
 
 async function runServeCommand(): Promise<void> {
-  ensureDataDir();
-  writePid(process.pid);
-
-  const cleanup = () => {
-    const currentPid = readPid();
-    if (currentPid === process.pid) {
-      removePidFile();
-    }
-  };
-
-  process.on("SIGINT", () => {
-    cleanup();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanup();
-    process.exit(0);
-  });
-  process.on("exit", cleanup);
-
+  registerServeProcessLifecycle();
   await runApp();
-}
-
-function startCommand(): void {
-  const runningPid = ensureFreshPidState();
-  if (runningPid) {
-    console.log(`${chalk.yellow("MiniClaw is already running")} ${chalk.dim(`(pid ${runningPid})`)}.`);
-    return;
-  }
-
-  ensureDataDir();
-  const logPath = resolveLogPath();
-  const stdoutFd = fs.openSync(logPath, "a");
-  const stderrFd = fs.openSync(logPath, "a");
-  const child = spawn(process.execPath, [...process.execArgv, "src/cli/run-main.ts", "serve"], {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: ["ignore", stdoutFd, stderrFd],
-    env: process.env,
-  });
-
-  if (!child.pid) {
-    throw new Error("Failed to determine MiniClaw child process id.");
-  }
-
-  writePid(child.pid);
-  child.unref();
-  fs.closeSync(stdoutFd);
-  fs.closeSync(stderrFd);
-
-  console.log(`${chalk.green("MiniClaw started")} ${chalk.dim(`(pid ${child.pid})`)}.`);
-  console.log(`${chalk.bold("Log:")} ${chalk.dim(logPath)}`);
-}
-
-function stopCommand(): void {
-  const runningPid = ensureFreshPidState();
-  if (!runningPid) {
-    console.log(chalk.yellow("MiniClaw is not running."));
-    return;
-  }
-
-  process.kill(runningPid, "SIGTERM");
-  removePidFile();
-  console.log(`${chalk.green("MiniClaw stopped")} ${chalk.dim(`(pid ${runningPid})`)}.`);
-}
-
-function restartCommand(): void {
-  stopCommand();
-  startCommand();
 }
 
 export async function runCli(argv: string[] = process.argv): Promise<void> {
@@ -119,17 +44,17 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
   }
 
   if (command === "start") {
-    startCommand();
+    startService();
     return;
   }
 
   if (command === "stop") {
-    stopCommand();
+    stopService();
     return;
   }
 
   if (command === "restart") {
-    restartCommand();
+    restartService();
     return;
   }
 

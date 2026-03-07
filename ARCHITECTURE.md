@@ -319,6 +319,7 @@ miniclaw/
 - `miniclaw status`
 - `miniclaw status --json`
 - `miniclaw ui`
+- `miniclaw config`
 
 ### 行为约定
 
@@ -328,6 +329,7 @@ miniclaw/
 - `status`：输出人类可读的本地状态
 - `status --json`：输出机器可读的结构化状态，便于脚本或 UI 复用
 - `ui`：启动本地只读 HTTP 服务，不受 `start/stop` 守护进程管理
+- `config`：交互式修改 `~/.miniclaw/miniclaw.json`，每项修改后立即保存；退出时如果检测到关键运行时配置变更，且服务正在运行，则自动执行一次 `restart`
 
 ### 当前状态快照字段
 
@@ -347,6 +349,7 @@ type StatusSnapshot = {
     logFile: string;
     dbPath: string;
     transcriptDir: string;
+    skillsDirs: string[];
   };
   discord: {
     tokenConfigured: boolean;
@@ -920,10 +923,12 @@ Prompt 构建时，偏好解析优先级建议如下：
 - [x] `miniclaw start/stop/restart`
 - [x] `miniclaw status`
 - [x] `miniclaw status --json`
+- [x] `miniclaw config`
 - [x] 本地只读状态 UI
 - [x] `/api/status` 接口
 - [x] UI 前后端拆分到独立目录
 - [x] UI 自动打开浏览器
+- [x] 配置退出时按需自动重启服务
 
 ### Phase 6
 

@@ -6,6 +6,7 @@ import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
 import { loadConfig } from "../config/load-config.js";
 import { ensureMiniclawConfigFile } from "../config/paths.js";
+import { isServiceRunning, restartService } from "./service-manager.js";
 
 type ConfigObject = Record<string, unknown>;
 
@@ -14,6 +15,16 @@ type MutableConfig = ConfigObject & {
   agent?: ConfigObject;
   runtime?: ConfigObject;
 };
+
+const RESTART_SENSITIVE_FIELDS = [
+  "discord.token",
+  "discord.allowedUserIds",
+  "discord.allowedGuildIds",
+  "agent.model",
+  "agent.workspaceRoot",
+  "agent.toolCwd",
+  "runtime.authStorePath",
+] as const;
 
 function assertInteractiveTerminal(): void {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -51,6 +62,30 @@ function sanitizeConfigDocument(config: MutableConfig): MutableConfig {
 
 function persistConfig(configPath: string, draft: MutableConfig): void {
   writeConfigDocument(configPath, sanitizeConfigDocument(draft));
+}
+
+function readNestedValue(config: MutableConfig, keyPath: string): unknown {
+  return keyPath.split(".").reduce<unknown>((current, part) => {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return undefined;
+    }
+    return (current as Record<string, unknown>)[part];
+  }, config);
+}
+
+function normalizeComparable(value: unknown): string {
+  return JSON.stringify(value ?? null);
+}
+
+function requiresServiceRestart(initialConfig: MutableConfig, draft: MutableConfig): boolean {
+  const initial = sanitizeConfigDocument(initialConfig);
+  const current = sanitizeConfigDocument(draft);
+
+  return RESTART_SENSITIVE_FIELDS.some(
+    (keyPath) =>
+      normalizeComparable(readNestedValue(initial, keyPath)) !==
+      normalizeComparable(readNestedValue(current, keyPath)),
+  );
 }
 
 function ensureSection(config: MutableConfig, key: "discord" | "agent" | "runtime"): ConfigObject {
@@ -406,7 +441,8 @@ function printDraftPreview(draft: MutableConfig): void {
 export async function runConfigCommand(): Promise<void> {
   assertInteractiveTerminal();
   const configPath = ensureMiniclawConfigFile(process.env);
-  const draft = cloneConfig(sanitizeConfigDocument(readConfigDocument(configPath)));
+  const initialDraft = sanitizeConfigDocument(readConfigDocument(configPath));
+  const draft = cloneConfig(initialDraft);
 
   while (true) {
     printHeader("MiniClaw 配置", configPath);
@@ -442,6 +478,20 @@ export async function runConfigCommand(): Promise<void> {
       continue;
     }
 
+    const needsRestart = requiresServiceRestart(initialDraft, draft);
+    if (needsRestart) {
+      if (isServiceRunning()) {
+        console.log("");
+        console.log(chalk.yellow("配置已保存，检测到运行时配置变更，正在重启 MiniClaw..."));
+        restartService();
+      } else {
+        console.log("");
+        console.log(chalk.yellow("配置已保存。相关改动将在下次启动时生效。"));
+      }
+    } else {
+      console.log("");
+      console.log(chalk.green("配置已保存。"));
+    }
     return;
   }
 }
