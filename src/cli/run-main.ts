@@ -15,11 +15,12 @@ import {
   writePid,
 } from "./status.js";
 import { runUiServer } from "../ui/server.js";
+import { runConfigCommand } from "./config.js";
 
-type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve";
+type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve" | "config";
 
 function printUsage(): void {
-  console.log(`${chalk.bold("Usage:")} miniclaw <start|stop|restart|status|ui>`);
+  console.log(`${chalk.bold("Usage:")} miniclaw <start|stop|restart|status|ui|config>`);
 }
 
 function statusCommand(jsonMode: boolean): void {
@@ -139,6 +140,11 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 
   if (command === "ui") {
     await runUiServer(Number.isFinite(port) && port > 0 ? port : 3210);
+    return;
+  }
+
+  if (command === "config") {
+    await runConfigCommand();
     return;
   }
 

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import process from "node:process";
 import chalk from "chalk";
-import { confirm, input, password, select } from "@inquirer/prompts";
+import { input, password, select } from "@inquirer/prompts";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
 import { loadConfig } from "../config/load-config.js";
@@ -39,6 +39,18 @@ function readConfigDocument(configPath: string): MutableConfig {
 
 function writeConfigDocument(configPath: string, config: MutableConfig): void {
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+function sanitizeConfigDocument(config: MutableConfig): MutableConfig {
+  const next = cloneConfig(config);
+  if (next.agent && typeof next.agent === "object" && !Array.isArray(next.agent)) {
+    delete next.agent.userProfilePath;
+  }
+  return next;
+}
+
+function persistConfig(configPath: string, draft: MutableConfig): void {
+  writeConfigDocument(configPath, sanitizeConfigDocument(draft));
 }
 
 function ensureSection(config: MutableConfig, key: "discord" | "agent" | "runtime"): ConfigObject {
@@ -239,25 +251,13 @@ async function runOpenAiAuthCheck(): Promise<void> {
   await input({ message: "按回车继续" });
 }
 
-async function runOpenAiMenu(draft: MutableConfig): Promise<void> {
+async function runOpenAiMenu(draft: MutableConfig, configPath: string): Promise<void> {
   while (true) {
     const agentSection = ensureSection(draft, "agent");
     const choice = await select({
       message: "OpenAI 设置",
       choices: [
         { name: `模型（${trimString(agentSection.model) ?? "gpt-5-codex"}）`, value: "model" },
-        {
-          name: `工具工作目录（${trimString(agentSection.toolCwd) ?? "默认"}）`,
-          value: "toolCwd",
-        },
-        {
-          name: `工作区根目录（${trimString(agentSection.workspaceRoot) ?? "默认"}）`,
-          value: "workspaceRoot",
-        },
-        {
-          name: `用户配置文件路径（${trimString(agentSection.userProfilePath) ?? "默认"}）`,
-          value: "userProfilePath",
-        },
         { name: "验证登录状态", value: "validateLogin" },
         { name: "返回上一级", value: "back" },
       ],
@@ -276,8 +276,33 @@ async function runOpenAiMenu(draft: MutableConfig): Promise<void> {
       const result = await promptStringField("OpenAI 模型", trimString(agentSection.model));
       if (result.changed && result.value !== undefined) {
         setStringField(draft, "agent", "model", result.value);
+        persistConfig(configPath, draft);
       }
       continue;
+    }
+  }
+}
+
+async function runSystemMenu(draft: MutableConfig, configPath: string): Promise<void> {
+  while (true) {
+    const agentSection = ensureSection(draft, "agent");
+    const choice = await select({
+      message: "系统设置",
+      choices: [
+        {
+          name: `工具工作目录（${trimString(agentSection.toolCwd) ?? "默认"}）`,
+          value: "toolCwd",
+        },
+        {
+          name: `工作区根目录（${trimString(agentSection.workspaceRoot) ?? "默认"}）`,
+          value: "workspaceRoot",
+        },
+        { name: "返回上一级", value: "back" },
+      ],
+    });
+
+    if (choice === "back") {
+      return;
     }
 
     if (choice === "toolCwd") {
@@ -288,6 +313,7 @@ async function runOpenAiMenu(draft: MutableConfig): Promise<void> {
       );
       if (result.changed && result.value !== undefined) {
         setStringField(draft, "agent", "toolCwd", result.value);
+        persistConfig(configPath, draft);
       }
       continue;
     }
@@ -300,22 +326,14 @@ async function runOpenAiMenu(draft: MutableConfig): Promise<void> {
       );
       if (result.changed && result.value !== undefined) {
         setStringField(draft, "agent", "workspaceRoot", result.value);
+        persistConfig(configPath, draft);
       }
       continue;
-    }
-
-    const result = await promptStringField(
-      "用户配置文件路径",
-      trimString(agentSection.userProfilePath),
-      { allowClear: true, help: "输入 * 可清除覆盖设置并恢复默认值。" },
-    );
-    if (result.changed && result.value !== undefined) {
-      setStringField(draft, "agent", "userProfilePath", result.value);
     }
   }
 }
 
-async function runDiscordMenu(draft: MutableConfig): Promise<void> {
+async function runDiscordMenu(draft: MutableConfig, configPath: string): Promise<void> {
   while (true) {
     const discordSection = ensureSection(draft, "discord");
     const choice = await select({
@@ -350,6 +368,7 @@ async function runDiscordMenu(draft: MutableConfig): Promise<void> {
       );
       if (result.changed && result.value !== undefined) {
         setStringField(draft, "discord", "token", result.value);
+        persistConfig(configPath, draft);
       }
       continue;
     }
@@ -361,6 +380,7 @@ async function runDiscordMenu(draft: MutableConfig): Promise<void> {
       );
       if (result.changed && result.value !== undefined) {
         setListField(draft, "discord", "allowedUserIds", result.value);
+        persistConfig(configPath, draft);
       }
       continue;
     }
@@ -371,6 +391,7 @@ async function runDiscordMenu(draft: MutableConfig): Promise<void> {
     );
     if (result.changed && result.value !== undefined) {
       setListField(draft, "discord", "allowedGuildIds", result.value);
+      persistConfig(configPath, draft);
     }
   }
 }
@@ -385,8 +406,7 @@ function printDraftPreview(draft: MutableConfig): void {
 export async function runConfigCommand(): Promise<void> {
   assertInteractiveTerminal();
   const configPath = ensureMiniclawConfigFile(process.env);
-  const original = readConfigDocument(configPath);
-  const draft = cloneConfig(original);
+  const draft = cloneConfig(sanitizeConfigDocument(readConfigDocument(configPath)));
 
   while (true) {
     printHeader("MiniClaw 配置", configPath);
@@ -394,21 +414,26 @@ export async function runConfigCommand(): Promise<void> {
     const choice = await select({
       message: "主菜单",
       choices: [
+        { name: "系统设置", value: "system" },
         { name: "OpenAI 设置", value: "openai" },
         { name: "Discord 设置", value: "discord" },
         { name: "查看当前配置", value: "view" },
-        { name: "保存并退出", value: "save" },
-        { name: "直接退出", value: "exit" },
+        { name: "退出", value: "exit" },
       ],
     });
 
     if (choice === "openai") {
-      await runOpenAiMenu(draft);
+      await runOpenAiMenu(draft, configPath);
+      continue;
+    }
+
+    if (choice === "system") {
+      await runSystemMenu(draft, configPath);
       continue;
     }
 
     if (choice === "discord") {
-      await runDiscordMenu(draft);
+      await runDiscordMenu(draft, configPath);
       continue;
     }
 
@@ -417,27 +442,6 @@ export async function runConfigCommand(): Promise<void> {
       continue;
     }
 
-    if (choice === "save") {
-      writeConfigDocument(configPath, draft);
-      console.log(chalk.green(`Saved MiniClaw config to ${configPath}.`));
-      return;
-    }
-
-    const hasChanges = JSON.stringify(draft) !== JSON.stringify(original);
-    if (!hasChanges) {
-      return;
-    }
-
-    const shouldSave = await confirm({
-      message: "当前有未保存的更改，退出前是否保存？",
-      default: true,
-    });
-    if (shouldSave) {
-      writeConfigDocument(configPath, draft);
-      console.log(chalk.green(`Saved MiniClaw config to ${configPath}.`));
-    } else {
-      console.log(chalk.yellow("已放弃未保存的更改。"));
-    }
     return;
   }
 }

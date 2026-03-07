@@ -18,7 +18,6 @@ type JsonConfig = {
     model?: unknown;
     workspaceRoot?: unknown;
     toolCwd?: unknown;
-    userProfilePath?: unknown;
   };
   runtime?: {
     dbPath?: unknown;
@@ -101,7 +100,7 @@ export function loadConfig(): AppConfig {
     process.env.HOME || process.cwd(),
   );
   const userProfilePath = resolveStateSubPath(
-    readString(fileConfig.agent?.userProfilePath) ?? process.env.MINICLAW_USER_PROFILE_PATH,
+    undefined,
     path.join("workspace", "USER.md"),
     process.env,
   );
