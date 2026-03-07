@@ -15,6 +15,7 @@ import {
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import type { AppConfig, ModelReplyResult, StoredMessage, ToolExecutionRecord } from "../core/types.js";
+import { summarizeToolOutput } from "../tools/output-summary.js";
 import { createSecureBashOperations } from "../tools/secure-bash.js";
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
@@ -139,20 +140,21 @@ function toToolRecord(event: AgentSessionEvent): ToolExecutionRecord | null {
     return null;
   }
 
-  let content = "";
+  let rawContent = "";
   if (typeof event.result === "string") {
-    content = event.result;
+    rawContent = event.result;
   } else {
     try {
-      content = JSON.stringify(event.result);
+      rawContent = JSON.stringify(event.result);
     } catch {
-      content = String(event.result);
+      rawContent = String(event.result);
     }
   }
 
   return {
     toolName: event.toolName,
-    content,
+    content: summarizeToolOutput(rawContent),
+    rawContent,
     isError: Boolean(event.isError),
   };
 }
@@ -218,7 +220,7 @@ export async function generateAgentReply(params: {
     const toolRecord = toToolRecord(event);
     if (toolRecord) {
       console.log(
-        `[tools] end session=${params.sessionKey} tool=${toolRecord.toolName} isError=${String(toolRecord.isError)} result=${JSON.stringify(toolRecord.content)}`,
+        `[tools] end session=${params.sessionKey} tool=${toolRecord.toolName} isError=${String(toolRecord.isError)} summary=${JSON.stringify(toolRecord.content)}`,
       );
       toolEvents.push(toolRecord);
     }

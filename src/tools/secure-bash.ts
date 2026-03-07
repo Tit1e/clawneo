@@ -3,6 +3,7 @@ import type { BashOperations } from "@mariozechner/pi-coding-agent";
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
 const MAX_TIMEOUT_SECONDS = 60;
+const MAX_CAPTURE_BYTES = 64 * 1024;
 
 const HARD_BLOCKED_PATTERNS: RegExp[] = [
   /\bshutdown\b/i,
@@ -87,8 +88,38 @@ export function createSecureBashOperations(): BashOperations {
           finish(() => reject(new Error(`timeout:${timeoutSeconds}`)));
         }, timeoutSeconds * 1000);
 
-        child.stdout.on("data", onData);
-        child.stderr.on("data", onData);
+        let capturedBytes = 0;
+        let truncationNoticeSent = false;
+
+        const handleData = (data: Buffer) => {
+          if (capturedBytes >= MAX_CAPTURE_BYTES) {
+            if (!truncationNoticeSent) {
+              truncationNoticeSent = true;
+              onData(Buffer.from(`\n[output truncated after ${MAX_CAPTURE_BYTES} bytes]\n`, "utf8"));
+            }
+            return;
+          }
+
+          const remainingBytes = MAX_CAPTURE_BYTES - capturedBytes;
+          if (data.byteLength <= remainingBytes) {
+            capturedBytes += data.byteLength;
+            onData(data);
+            return;
+          }
+
+          const partial = data.subarray(0, remainingBytes);
+          capturedBytes += partial.byteLength;
+          if (partial.byteLength > 0) {
+            onData(partial);
+          }
+          if (!truncationNoticeSent) {
+            truncationNoticeSent = true;
+            onData(Buffer.from(`\n[output truncated after ${MAX_CAPTURE_BYTES} bytes]\n`, "utf8"));
+          }
+        };
+
+        child.stdout.on("data", handleData);
+        child.stderr.on("data", handleData);
         child.on("error", (error) => {
           clearTimeout(timeoutHandle);
           finish(() => reject(error));

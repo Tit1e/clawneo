@@ -44,6 +44,7 @@ export type UserPreferences = Record<string, unknown>;
 export type ToolExecutionRecord = {
   toolName: string;
   content: string;
+  rawContent: string;
   isError: boolean;
 };
 

@@ -69,7 +69,7 @@ export function createConversationService({
       });
 
       let reply: string;
-      let toolEvents: Array<{ toolName: string; content: string; isError: boolean }> = [];
+      let toolEvents: Array<{ toolName: string; content: string; rawContent: string; isError: boolean }> = [];
       try {
         const result = await generateModelReply({
           config,
@@ -108,6 +108,9 @@ export function createConversationService({
           sessionKey: message.sessionKey,
           role: "tool",
           content: `[${toolEvent.toolName}] ${toolEvent.isError ? "error" : "ok"}\n${toolEvent.content}`,
+          toolCalls: {
+            rawContent: toolEvent.rawContent,
+          },
         });
       }
       transcriptStore.append({
