@@ -9,6 +9,9 @@
 - 已完成：Discord 连接、消息接收、按 `guild/user` allowlist 放行
 - 已完成：`sessionKey` 生成与 transcript 持久化
 - 已完成：Discord 超长回复自动分片发送
+- 已完成：CLI 服务命令 `miniclaw start/stop/restart`
+- 已完成：`miniclaw status` 与 `status --json`
+- 已完成：本地只读状态 UI `miniclaw ui`
 - 已完成：OpenAI Codex OAuth 浏览器授权、`localhost:1455` 回调、auth store 落盘
 - 已完成：运行时优先读取项目 auth profile，并在过期时自动 refresh
 - 已完成：auth store 使用显式 `defaultProfileId` 选择当前默认 OAuth profile，避免旧 `openai-codex:default` 抢占
@@ -17,11 +20,14 @@
 - 已完成：工具开始/结束日志记录
 - 已完成：结构化偏好存储与显式偏好更新
 - 已完成：`SQLite + USER.md` 联合注入 prompt
+- 已完成：稳定偏好同步写入 `USER.md` 受管区块
 - 已完成：基础危险命令硬封禁
+- 已完成：UI 前端资源拆分到 `src/ui/web/`
+- 已完成：UI 通过 `/api/status` 轮询更新，不再整页刷新
+- 已完成：UI 启动后自动尝试打开浏览器，可通过 `MINICLAW_UI_NO_OPEN=1` 关闭
 
 下面这些仍未完成，或者只完成了部分：
 
-- 未完成：`USER.md` 双向同步
 - 未完成：统一的工具输出摘要策略
 - 未完成：会话取消 / 中断
 - 未完成：轻量 fact 抽取
@@ -51,6 +57,7 @@
 - 跨会话持久化用户偏好
 - 持久化对话 transcript
 - 在后续轮次中注入稳定偏好
+- 提供本地只读状态 UI 与基础 CLI 运维命令
 
 ### 第一版不包含
 
@@ -58,7 +65,7 @@
 - 多 agent 路由
 - 插件市场或扩展运行时
 - 浏览器控制
-- Canvas 或 UI host
+- Canvas 或复杂交互式控制台 UI
 - 移动设备节点
 - 向量记忆与语义检索
 - 分布式 worker
@@ -148,7 +155,7 @@ MiniClaw 只需要一条窄路径：
 - 已完成：`SQLite` 作为会话、消息和偏好存储
 - 已完成：transcript append-only 持久化
 - 已完成：`USER.md` 作为补充上下文参与 prompt 构建
-- 未完成：将稳定偏好自动回写到 `USER.md`
+- 已完成：将稳定偏好同步写入 `USER.md` 的受管区块
 
 ## 为什么不能把所有偏好都放进 USER.md
 
@@ -220,10 +227,15 @@ miniclaw/
   package.json
   ARCHITECTURE.md
   USER.md
+  bin/
+    miniclaw.mjs
   data/
     miniclaw.db
     transcripts/
   src/
+    cli/
+      run-main.ts
+      status.ts
     discord/
       client.ts
       message-handler.ts
@@ -253,6 +265,12 @@ miniclaw/
     auth/
       openai-auth.ts
       token-store.ts
+    ui/
+      server.ts
+      web/
+        index.html
+        app.js
+        styles.css
 ```
 
 说明：上面是目标结构，不是当前文件树的逐字镜像。当前已经实际存在的关键目录主要是：
@@ -265,6 +283,94 @@ miniclaw/
 - `src/preferences`
 - `src/transcripts`
 - `src/store`
+- `src/cli`
+- `src/ui`
+
+## CLI 设计
+
+当前 CLI 已经作为一等入口存在，不再只依赖 `npm start`。
+
+### 已实现命令
+
+- `miniclaw start`
+- `miniclaw stop`
+- `miniclaw restart`
+- `miniclaw status`
+- `miniclaw status --json`
+- `miniclaw ui`
+
+### 行为约定
+
+- `start`：后台启动服务，写入 `data/miniclaw.pid`，日志输出到 `data/miniclaw.log`
+- `stop`：按 PID 发送 `SIGTERM`
+- `restart`：先停后启
+- `status`：输出人类可读的本地状态
+- `status --json`：输出机器可读的结构化状态，便于脚本或 UI 复用
+- `ui`：启动本地只读 HTTP 服务，不受 `start/stop` 守护进程管理
+
+### 当前状态快照字段
+
+`status --json` 和 `/api/status` 当前共用同一份状态结构：
+
+```ts
+type StatusSnapshot = {
+  process: {
+    running: boolean;
+    pid: number | null;
+    uptimeMs: number | null;
+  };
+  runtime: {
+    pidFile: string;
+    logFile: string;
+    dbPath: string;
+    transcriptDir: string;
+  };
+  discord: {
+    tokenConfigured: boolean;
+    allowedUsers: number;
+    allowedGuilds: number;
+  };
+  model: {
+    model: string;
+    authStore: string;
+    defaultProfileId: string | null;
+    oauthProfileCount: number;
+    authUsable: boolean;
+    tokenExpired: boolean | null;
+  };
+  logs: string[];
+};
+```
+
+## 本地只读 UI
+
+MiniClaw 当前已经提供最小只读状态 UI，用于替代手动查看 PID、日志和 auth store。
+
+### 入口
+
+- `miniclaw ui`
+- `miniclaw ui --port 3210`
+
+### 行为
+
+- 启动前台本地 HTTP 服务
+- 默认监听 `127.0.0.1:3210`
+- 服务启动后会尝试自动打开浏览器
+- 设置 `MINICLAW_UI_NO_OPEN=1` 时跳过自动打开
+- 当前不提供任何写操作或控制按钮
+
+### HTTP 路由
+
+- `GET /`：返回静态状态页面
+- `GET /api/status`：返回结构化状态 JSON
+
+### 前端实现
+
+- 前端资源位于 `src/ui/web/`
+- 页面通过 `fetch("/api/status")` 轮询获取数据
+- 当前每 `5` 秒更新一次
+- 仅做局部 DOM 更新，不再整页 reload
+- 页面主要展示 `Process`、`Runtime`、`Discord`、`Model`、`Recent Logs`
 
 ## 数据库表结构
 
@@ -331,16 +437,19 @@ CREATE TABLE user_facts (
 ```md
 # User Profile
 
+<!-- miniclaw:preferences:start -->
 - Preferred language: Simplified Chinese
 - Preferred answer style: concise
 - Preferred package manager: pnpm
 - Shell: zsh
 - Edit policy: ask before modifying files
+<!-- miniclaw:preferences:end -->
 - Current project: MiniClaw
 - Goal: build a minimal OpenClaw-like Discord assistant
 ```
 
 这个文件应当保持短、小、高信号。
+程序当前只会维护受管区块，不应改写其他人工内容。
 
 ## Discord 接入设计
 
@@ -763,13 +872,24 @@ Prompt 构建时，偏好解析优先级建议如下：
 - [x] 结构化偏好存储
 - [x] 显式偏好更新
 - [x] Prompt 偏好注入
-- [ ] `USER.md` 同步
+- [x] `USER.md` 受管区块同步
 
 ### Phase 5
+
+- [x] `miniclaw start/stop/restart`
+- [x] `miniclaw status`
+- [x] `miniclaw status --json`
+- [x] 本地只读状态 UI
+- [x] `/api/status` 接口
+- [x] UI 前后端拆分到独立目录
+- [x] UI 自动打开浏览器
+
+### Phase 6
 
 - [ ] 取消 run
 - [~] 更好的错误呈现
 - [ ] 可选的轻量 fact 抽取
+- [ ] 工具输出摘要
 
 ## 最终建议
 
