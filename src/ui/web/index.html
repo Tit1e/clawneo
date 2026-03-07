@@ -1,33 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MiniClaw UI</title>
+  <title>MiniClaw 控制台</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="page">
     <header class="hero">
       <div>
-        <h1>MiniClaw UI</h1>
-        <p class="subtitle">Read-only local dashboard for process, runtime, Discord, model, and recent logs.</p>
+        <h1>MiniClaw 控制台</h1>
+        <p class="subtitle">本地只读状态页，展示服务进程、运行时、Discord、模型认证和最近日志。</p>
       </div>
       <div class="meta">
         <div>API: <code>/api/status</code></div>
-        <div id="updated-at">Updated: -</div>
+        <div id="updated-at">更新时间：-</div>
       </div>
     </header>
 
     <main class="grid">
       <section class="card">
-        <h2>Process</h2>
+        <h2>进程</h2>
         <dl>
-          <dt>Running</dt>
+          <dt>运行状态</dt>
           <dd><span id="process-running" class="badge neutral">-</span></dd>
           <dt>PID</dt>
           <dd id="process-pid">-</dd>
-          <dt>Uptime</dt>
+          <dt>运行时长</dt>
           <dd id="process-uptime">-</dd>
         </dl>
       </section>
@@ -37,52 +37,52 @@
         <dl>
           <dt>Token</dt>
           <dd><span id="discord-token" class="badge neutral">-</span></dd>
-          <dt>Allowed users</dt>
+          <dt>允许用户数</dt>
           <dd id="discord-users">-</dd>
-          <dt>Allowed guilds</dt>
+          <dt>允许服务器数</dt>
           <dd id="discord-guilds">-</dd>
         </dl>
       </section>
 
       <section class="card">
-        <h2>Runtime</h2>
+        <h2>运行时</h2>
         <dl>
-          <dt>PID file</dt>
+          <dt>PID 文件</dt>
           <dd id="runtime-pid-file" class="path">-</dd>
-          <dt>Log file</dt>
+          <dt>日志文件</dt>
           <dd id="runtime-log-file" class="path">-</dd>
-          <dt>DB path</dt>
+          <dt>数据库路径</dt>
           <dd id="runtime-db-path" class="path">-</dd>
-          <dt>Transcripts</dt>
+          <dt>对话记录目录</dt>
           <dd id="runtime-transcripts" class="path">-</dd>
         </dl>
       </section>
 
       <section class="card">
-        <h2>Model</h2>
+        <h2>模型</h2>
         <dl>
-          <dt>Model</dt>
+          <dt>模型</dt>
           <dd id="model-name">-</dd>
-          <dt>Default profile</dt>
+          <dt>默认 Profile</dt>
           <dd id="model-default-profile">-</dd>
-          <dt>Auth usable</dt>
+          <dt>认证可用</dt>
           <dd><span id="model-auth-usable" class="badge neutral">-</span></dd>
-          <dt>Token expired</dt>
+          <dt>Token 过期</dt>
           <dd><span id="model-token-expired" class="badge neutral">-</span></dd>
-          <dt>Profiles</dt>
+          <dt>Profile 数量</dt>
           <dd id="model-profiles">-</dd>
-          <dt>Auth store</dt>
+          <dt>认证存储</dt>
           <dd id="model-auth-store" class="path">-</dd>
         </dl>
       </section>
 
       <section class="card logs">
         <div class="logs-header">
-          <h2>Recent Logs</h2>
-          <div class="muted">Auto refresh: 5s</div>
+          <h2>最近日志</h2>
+          <div class="muted">自动刷新：5 秒</div>
         </div>
         <div id="logs" class="log-shell">
-          <div class="log-line muted">Loading...</div>
+          <div class="log-line muted">加载中...</div>
         </div>
       </section>
     </main>

@@ -15,7 +15,7 @@ function formatDuration(ms) {
   return `${seconds}s`;
 }
 
-function badgeState(element, value, trueLabel = "yes", falseLabel = "no") {
+function badgeState(element, value, trueLabel = "是", falseLabel = "否") {
   element.classList.remove("ok", "bad", "neutral");
   if (value === null || value === undefined) {
     element.classList.add("neutral");
@@ -45,10 +45,10 @@ function renderLogs(lines) {
     return;
   }
   logs.innerHTML = "";
-  const items = Array.isArray(lines) && lines.length > 0 ? lines : ["(no log lines)"];
+  const items = Array.isArray(lines) && lines.length > 0 ? lines : ["（暂无日志）"];
   for (const line of items) {
     const div = document.createElement("div");
-    div.className = `log-line${line === "(no log lines)" ? " muted" : ""}`;
+    div.className = `log-line${line === "（暂无日志）" ? " muted" : ""}`;
     div.textContent = line;
     logs.appendChild(div);
   }
@@ -62,8 +62,8 @@ function render(snapshot) {
   badgeState(
     document.getElementById("discord-token"),
     snapshot.discord.tokenConfigured,
-    "configured",
-    "missing",
+    "已配置",
+    "缺失",
   );
   setText("discord-users", String(snapshot.discord.allowedUsers));
   setText("discord-guilds", String(snapshot.discord.allowedGuilds));
@@ -81,7 +81,7 @@ function render(snapshot) {
   setText("model-auth-store", snapshot.model.authStore);
 
   renderLogs(snapshot.logs);
-  setText("updated-at", `Updated: ${new Date().toLocaleString()}`);
+  setText("updated-at", `更新时间：${new Date().toLocaleString()}`);
 }
 
 async function refresh() {
@@ -98,7 +98,7 @@ async function tick() {
     await refresh();
   } catch (error) {
     console.error("Failed to refresh MiniClaw UI", error);
-    setText("updated-at", "Updated: failed");
+    setText("updated-at", "更新时间：刷新失败");
   }
 }
 
