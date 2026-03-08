@@ -19,8 +19,15 @@ import {
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import type { AppConfig, ModelReplyResult, StoredMessage, ToolExecutionRecord } from "../core/types.js";
+import type { ToolRequestContext } from "../core/types.js";
+import type { ScheduledTaskStore } from "../scheduled-tasks/store.js";
 import { summarizeToolOutput } from "../tools/output-summary.js";
 import { createSecureBashOperations } from "../tools/secure-bash.js";
+import {
+  createCancelScheduledTaskTool,
+  createCreateScheduledTaskTool,
+  createListScheduledTasksTool,
+} from "../tools/scheduled-task-tools.js";
 import { createInstallSkillTool } from "../tools/skill-installer.js";
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
@@ -197,6 +204,8 @@ export async function generateAgentReply(params: {
   systemPrompt: string;
   transcript: StoredMessage[];
   sessionKey: string;
+  context: ToolRequestContext;
+  scheduledTaskStore: ScheduledTaskStore;
   signal?: AbortSignal;
 }): Promise<ModelReplyResult> {
   const credential = await resolveOpenAICodexCredential(params.config);
@@ -242,7 +251,21 @@ export async function generateAgentReply(params: {
         operations: createSecureBashOperations(),
       }),
     ],
-    customTools: [createInstallSkillTool({ latestUserPrompt })],
+    customTools: [
+      createInstallSkillTool({ latestUserPrompt }),
+      createCreateScheduledTaskTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+      createListScheduledTasksTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+      createCancelScheduledTaskTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+    ],
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },

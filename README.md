@@ -10,6 +10,7 @@ It supports:
 - chatting with the assistant through Discord
 - OpenAI Codex OAuth
 - `read` / `ls` / `grep` / `bash` tools
+- natural-language reminder tasks in Discord (experimental)
 - structured user preferences
 - a local status UI and basic service commands
 
@@ -98,6 +99,24 @@ Notes:
 - `/cancel` aborts the current running task for the current Discord session
 - `/stop` will take the bot offline
 - after stopping, start it again with `clawneo start`
+
+## Reminder Tasks
+
+ClawNeo has early support for reminder-style scheduled tasks through natural language in Discord.
+
+Examples:
+
+```text
+20 minutes later remind me to check the logs
+every day at 8 remind me to clock in
+what reminders do I have
+cancel the latest reminder
+```
+
+Notes:
+- this feature is still experimental
+- reminder delivery is designed for a single running ClawNeo instance
+- timezone defaults to the current machine timezone unless you specify one explicitly
 
 ## Skills Directory
 

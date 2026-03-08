@@ -26,11 +26,17 @@
 - 已完成：UI 前端资源拆分到 `src/ui/web/`
 - 已完成：UI 通过 `/api/status` 轮询更新，不再整页刷新
 - 已完成：UI 启动后自动尝试打开浏览器，可通过 `CLAWNEO_UI_NO_OPEN=1` 关闭
+- 已完成：Discord 会话取消 `/cancel`
+- 已完成：自然语言提醒型定时任务的第一版系统能力（实验性）
+  - 已完成：内置 reminder skill
+  - 已完成：`SQLite` 任务表与系统工具
+  - 已完成：单进程内 scheduler 与直接 Discord 提醒投递
+  - 当前语义：按单实例运行设计，DST 保持 cron 自然语义
 
 下面这些仍未完成，或者只完成了部分：
 
-- 未完成：会话取消 / 中断
 - 未完成：轻量 fact 抽取
+- 部分完成：提醒任务的恢复语义仍不完整，`delivering` 卡住恢复尚未实现
 - 部分完成：错误呈现已经比初版清晰，但还没有系统化的审计视图
 
 ## 目标
@@ -58,6 +64,7 @@
 - 持久化对话 transcript
 - 在后续轮次中注入稳定偏好
 - 提供本地只读状态 UI 与基础 CLI 运维命令
+- 提供实验性的自然语言提醒型定时任务
 
 ### 第一版不包含
 
@@ -70,6 +77,7 @@
 - 向量记忆与语义检索
 - 分布式 worker
 - 完整的 OpenClaw 容器沙箱体系
+- 多实例精确一次 reminder 投递保证
 
 ## 核心设计原则
 
@@ -82,6 +90,7 @@ ClawNeo 应该是一个单进程应用，但内部边界要非常清楚：
 5. `工具执行器`
 6. `偏好存储`
 7. `Transcript 存储`
+8. `Reminder Scheduler`
 
 Discord 层只负责消息输入输出，不负责记忆、Prompt 拼装或工具编排。
 
@@ -103,6 +112,18 @@ Discord 消息
   -> 持久化 transcript
   -> 抽取或更新偏好
   -> 回发 Discord
+
+定时提醒走另一条系统路径：
+
+```text
+Discord 自然语言提醒请求
+  -> Agent 识别 reminder intent
+  -> 内置 reminder skill
+  -> create_scheduled_task / list_scheduled_tasks / cancel_scheduled_task
+  -> SQLite scheduled_tasks
+  -> 进程内 scheduler loop
+  -> 到点后系统直接发送 Discord 提醒
+```
 ```
 
 ## 为什么它会比 OpenClaw 小很多
@@ -191,6 +212,15 @@ ClawNeo 只需要一条窄路径：
   workspace/
     USER.md
 ```
+
+提醒任务当前采用单实例模型：
+
+- 任务保存在 `SQLite`
+- 到点投递由当前运行中的单个 ClawNeo 进程负责
+- 当前不承诺多实例共享同一数据库时的精确一次投递
+- DST 保持 cron 的自然语义：
+  - 回拨日可能触发两次
+  - 前跳日可能跳过一次
 
 ### 当前实现对应关系
 

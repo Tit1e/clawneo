@@ -17,7 +17,7 @@ export async function startDiscordClient({
   config,
   onMessage,
   onCancel,
-}: DiscordClientParams): Promise<void> {
+}: DiscordClientParams): Promise<Client> {
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -44,4 +44,5 @@ export async function startDiscordClient({
   });
 
   await client.login(config.discord.token);
+  return client;
 }

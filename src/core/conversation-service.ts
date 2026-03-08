@@ -6,6 +6,7 @@ import {
   formatPreferenceSummary,
 } from "../preferences/explicit-updates.js";
 import { syncUserProfileFile } from "../preferences/user-profile-sync.js";
+import { createScheduledTaskStore } from "../scheduled-tasks/store.js";
 import { buildPromptContext } from "./prompt-builder.js";
 import { createSessionStore } from "./session-store.js";
 import type { AppConfig, InboundMessage } from "./types.js";
@@ -33,6 +34,7 @@ export function createConversationService({
   transcriptStore,
 }: ConversationServiceParams) {
   const sessionStore = createSessionStore(db);
+  const scheduledTaskStore = createScheduledTaskStore(db);
   const activeRuns = new Map<string, AbortController>();
 
   return {
@@ -87,6 +89,14 @@ export function createConversationService({
           systemPrompt: promptContext.systemPrompt,
           transcript,
           sessionKey: message.sessionKey,
+          context: {
+            sessionKey: message.sessionKey,
+            userId: message.userId,
+            guildId: message.guildId,
+            channelId: message.channelId,
+            threadId: message.threadId,
+          },
+          scheduledTaskStore,
           signal: abortController.signal,
         });
         reply = result.reply;

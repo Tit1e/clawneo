@@ -51,6 +51,14 @@ export type ToolExecutionRecord = {
   isError: boolean;
 };
 
+export type ToolRequestContext = {
+  sessionKey: string;
+  userId: string;
+  guildId?: string;
+  channelId: string;
+  threadId?: string;
+};
+
 export type PendingCommandApproval = {
   sessionKey: string;
   userId: string;

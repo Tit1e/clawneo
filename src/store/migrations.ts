@@ -42,4 +42,26 @@ export const MIGRATIONS: string[] = [
       created_at TEXT NOT NULL
     )
   `,
+  `
+    CREATE TABLE IF NOT EXISTS scheduled_tasks (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      schedule_type TEXT NOT NULL,
+      run_at TEXT,
+      cron_expr TEXT,
+      timezone TEXT NOT NULL,
+      reminder_text TEXT NOT NULL,
+      session_key TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      guild_id TEXT,
+      channel_id TEXT NOT NULL,
+      thread_id TEXT,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_run_at TEXT,
+      next_run_at TEXT NOT NULL,
+      last_error TEXT
+    )
+  `,
 ];
