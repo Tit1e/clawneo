@@ -66,6 +66,22 @@ async function replyToDiscordMessage(message: Message, content: string): Promise
   await sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
 }
 
+function renderSystemCommandHelp(): string {
+  return [
+    "MiniClaw 系统命令：",
+    "",
+    "- /help：查看这份命令说明",
+    "- /status：查看当前服务状态",
+    "- /restart：重启服务",
+    "- /stop：停止服务",
+    "",
+    "说明：",
+    "- 这些命令不经过 AI 模型",
+    "- /stop 后 bot 会离线",
+    "- 停止后需要通过 CLI 执行 miniclaw start 才能重新启动",
+  ].join("\n");
+}
+
 export function createDiscordMessageHandler({ config, onMessage }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
@@ -91,6 +107,14 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       return;
     }
 
+    if (text === "/help") {
+      console.log(
+        `[discord] system command /help from user=${message.author.id} channel=${message.channelId}`,
+      );
+      await replyToDiscordMessage(message, renderSystemCommandHelp());
+      return;
+    }
+
     if (text === "/restart") {
       console.log(
         `[discord] system command /restart from user=${message.author.id} channel=${message.channelId}`,
@@ -106,6 +130,17 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       );
       await replyToDiscordMessage(message, "MiniClaw 正在停止，稍后将离线。");
       runDetachedServiceCommand("stop");
+      return;
+    }
+
+    if (text.startsWith("/")) {
+      console.log(
+        `[discord] unknown system command ${JSON.stringify(text)} from user=${message.author.id} channel=${message.channelId}`,
+      );
+      await replyToDiscordMessage(
+        message,
+        `未知系统命令：${text}\n\n${renderSystemCommandHelp()}`,
+      );
       return;
     }
 
