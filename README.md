@@ -20,24 +20,10 @@ ClawNeo 是一个个人 AI 助手 CLI + Discord bridge。
 ## 安装
 
 ```bash
-npm install
+npm install -g clawneo
 ```
-
-## 登录
-
-```bash
-npm run auth:login
-```
-
-这会打开浏览器完成 OpenAI Codex OAuth 登录。
 
 ## 配置
-
-```bash
-npm run cli -- config
-```
-
-或者全局安装后：
 
 ```bash
 clawneo config
@@ -50,18 +36,6 @@ clawneo config
 ```
 
 ## 启动与停止
-
-开发环境下：
-
-```bash
-npm run cli -- start
-npm run cli -- stop
-npm run cli -- restart
-npm run cli -- status
-npm run cli -- ui
-```
-
-如果后续通过 npm 全局安装成功，则可直接使用：
 
 ```bash
 clawneo start
@@ -112,26 +86,6 @@ ClawNeo 会从以下目录加载 skills：
 ~/.clawneo/skills/
   github-projects/
     SKILL.md
-```
-
-## 开发
-
-类型检查：
-
-```bash
-npm run typecheck
-```
-
-构建：
-
-```bash
-npm run build
-```
-
-打包验证：
-
-```bash
-npm pack
 ```
 
 ## 更多说明
