@@ -2,15 +2,35 @@
   "name": "clawneo",
   "version": "0.1.0",
   "description": "Personal AI assistant CLI and Discord bridge",
+  "keywords": [
+    "ai",
+    "assistant",
+    "discord",
+    "codex",
+    "cli"
+  ],
+  "homepage": "https://github.com/Tit1e/clawneo#readme",
+  "bugs": {
+    "url": "https://github.com/Tit1e/clawneo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tit1e/clawneo.git"
+  },
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "clawneo": "bin/clawneo.mjs"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "bin/",
     "dist/",
     "ARCHITECTURE.md",
+    "LICENSE",
     "USER.md"
   ],
   "scripts": {
