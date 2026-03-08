@@ -48,6 +48,7 @@
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
     "@mariozechner/pi-coding-agent": "^0.55.3",
+    "@sinclair/typebox": "^0.34.41",
     "chalk": "^5.6.2",
     "discord.js": "^14.23.2"
   },

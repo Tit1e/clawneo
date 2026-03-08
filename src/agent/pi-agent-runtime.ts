@@ -21,6 +21,7 @@ import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import type { AppConfig, ModelReplyResult, StoredMessage, ToolExecutionRecord } from "../core/types.js";
 import { summarizeToolOutput } from "../tools/output-summary.js";
 import { createSecureBashOperations } from "../tools/secure-bash.js";
+import { createInstallSkillTool } from "../tools/skill-installer.js";
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
 const DEFAULT_CONTEXT_TOKENS = 272000;
@@ -224,6 +225,7 @@ export async function generateAgentReply(params: {
     params.transcript,
     params.config.runtime.skillsDirs,
   );
+  const latestUserPrompt = extractLatestUserPrompt(params.transcript);
   const { session } = await createAgentSession({
     cwd: params.config.agent.toolCwd,
     authStorage,
@@ -239,6 +241,7 @@ export async function generateAgentReply(params: {
         operations: createSecureBashOperations(),
       }),
     ],
+    customTools: [createInstallSkillTool({ latestUserPrompt })],
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },
@@ -263,7 +266,7 @@ export async function generateAgentReply(params: {
   });
 
   try {
-    await session.prompt(extractLatestUserPrompt(params.transcript));
+    await session.prompt(latestUserPrompt);
     return {
       reply: extractReply(session.state.messages),
       toolEvents,

@@ -95,6 +95,12 @@ ClawNeo loads skills from:
 - `~/.clawneo/skills`
 - `~/.agents/skills`
 
+When ClawNeo installs a skill for you, it uses these rules:
+
+- default install target: `~/.clawneo/skills`
+- global install target: `~/.agents/skills`
+- ClawNeo only installs to `~/.agents/skills` when you explicitly ask for a global install
+
 Example layout:
 
 ```text

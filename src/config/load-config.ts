@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AppConfig } from "../core/types.js";
 import {
+  resolveBundledSkillsDir,
   ensureClawneoConfigFile,
   ensureClawneoStateDir,
   resolveGlobalAgentsSkillsDir,
@@ -106,7 +107,11 @@ export function loadConfig(): AppConfig {
     path.join("workspace", "USER.md"),
     process.env,
   );
-  const skillsDirs = [resolveGlobalAgentsSkillsDir(), resolveClawneoSkillsDir(process.env)];
+  const skillsDirs = [
+    resolveBundledSkillsDir(import.meta.url),
+    resolveGlobalAgentsSkillsDir(),
+    resolveClawneoSkillsDir(process.env),
+  ];
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.mkdirSync(transcriptDir, { recursive: true });

@@ -95,6 +95,12 @@ ClawNeo 会从以下目录加载 skills：
 - `~/.clawneo/skills`
 - `~/.agents/skills`
 
+当 ClawNeo 帮你安装 skill 时，规则是：
+
+- 默认安装到：`~/.clawneo/skills`
+- 全局安装到：`~/.agents/skills`
+- 只有当你明确要求“全局安装”时，ClawNeo 才会安装到 `~/.agents/skills`
+
 示例结构：
 
 ```text

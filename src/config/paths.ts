@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 function expandHome(input: string): string {
   if (!input.startsWith("~")) {
@@ -66,6 +67,11 @@ export function resolveClawneoSkillsDir(env: NodeJS.ProcessEnv = process.env): s
 
 export function resolveGlobalAgentsSkillsDir(): string {
   return path.join(os.homedir(), ".agents", "skills");
+}
+
+export function resolveBundledSkillsDir(fromModuleUrl: string | URL = import.meta.url): string {
+  const moduleDir = path.dirname(fileURLToPath(fromModuleUrl));
+  return path.resolve(moduleDir, "..", "skills");
 }
 
 export function resolveStateSubPath(
