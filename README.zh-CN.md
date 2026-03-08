@@ -1,6 +1,8 @@
-[English](./README.md)
+![ClawNeo](./docs/assets/clawneo-hero.jpg)
 
 # ClawNeo
+
+[English](./README.md)
 
 ClawNeo 是一个个人 AI 助手 CLI 与 Discord bridge。
 
