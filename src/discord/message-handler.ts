@@ -43,6 +43,7 @@ function isAllowedMessage(message: Message, config: AppConfig): AllowDecision {
 type MessageHandlerParams = {
   config: AppConfig;
   onMessage: (message: InboundMessage) => Promise<void>;
+  onCancel: (sessionKey: string) => boolean;
 };
 
 function canSendTyping(channel: Message["channel"]): channel is Message["channel"] & {
@@ -72,17 +73,19 @@ function renderSystemCommandHelp(): string {
     "",
     "- /help：查看这份命令说明",
     "- /status：查看当前服务状态",
+    "- /cancel：取消当前会话正在运行的任务",
     "- /restart：重启服务",
     "- /stop：停止服务",
     "",
     "说明：",
     "- 这些命令不经过 AI 模型",
+    "- /cancel 只会取消当前 Discord 会话里的任务，不会停止整个服务",
     "- /stop 后 bot 会离线",
     "- 停止后需要通过 CLI 执行 clawneo start 才能重新启动",
   ].join("\n");
 }
 
-export function createDiscordMessageHandler({ config, onMessage }: MessageHandlerParams) {
+export function createDiscordMessageHandler({ config, onMessage, onCancel }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
     if (!decision.allowed) {
@@ -98,6 +101,26 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       return;
     }
 
+    const baseMessage: Omit<InboundMessage, "sessionKey"> = {
+      messageId: message.id || crypto.randomUUID(),
+      platform: "discord",
+      userId: message.author.id,
+      guildId: message.guildId || undefined,
+      channelId: message.channelId,
+      threadId: message.channel.isThread() ? message.channel.id : undefined,
+      text,
+      createdAt: new Date(message.createdTimestamp || Date.now()).toISOString(),
+      reply: async (content: string) => {
+        if (canSendMessage(message.channel)) {
+          const channel = message.channel;
+          return sendChunkedDiscordReply(content, (chunk) => channel.send(chunk));
+        }
+        return sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
+      },
+    };
+
+    const sessionKey = resolveSessionKey(baseMessage);
+
     if (text === "/status") {
       console.log(
         `[discord] system command /status from user=${message.author.id} channel=${message.channelId}`,
@@ -112,6 +135,18 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
         `[discord] system command /help from user=${message.author.id} channel=${message.channelId}`,
       );
       await replyToDiscordMessage(message, renderSystemCommandHelp());
+      return;
+    }
+
+    if (text === "/cancel") {
+      console.log(
+        `[discord] system command /cancel from user=${message.author.id} channel=${message.channelId} session=${sessionKey}`,
+      );
+      const cancelled = onCancel(sessionKey);
+      await replyToDiscordMessage(
+        message,
+        cancelled ? "已发送取消请求。" : "当前会话没有正在运行的任务。",
+      );
       return;
     }
 
@@ -144,27 +179,9 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       return;
     }
 
-    const baseMessage: Omit<InboundMessage, "sessionKey"> = {
-      messageId: message.id || crypto.randomUUID(),
-      platform: "discord",
-      userId: message.author.id,
-      guildId: message.guildId || undefined,
-      channelId: message.channelId,
-      threadId: message.channel.isThread() ? message.channel.id : undefined,
-      text,
-      createdAt: new Date(message.createdTimestamp || Date.now()).toISOString(),
-      reply: async (content: string) => {
-        if (canSendMessage(message.channel)) {
-          const channel = message.channel;
-          return sendChunkedDiscordReply(content, (chunk) => channel.send(chunk));
-        }
-        return sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
-      },
-    };
-
     const normalized: InboundMessage = {
       ...baseMessage,
-      sessionKey: resolveSessionKey(baseMessage),
+      sessionKey,
     };
 
     console.log(

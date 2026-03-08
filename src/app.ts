@@ -27,5 +27,6 @@ export async function runApp(): Promise<void> {
   await startDiscordClient({
     config,
     onMessage: (message) => conversationService.handleMessage(message),
+    onCancel: (sessionKey) => conversationService.cancelSession(sessionKey),
   });
 }

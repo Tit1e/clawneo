@@ -10,11 +10,13 @@ import type { AppConfig, InboundMessage } from "../core/types.js";
 type DiscordClientParams = {
   config: AppConfig;
   onMessage: (message: InboundMessage) => Promise<void>;
+  onCancel: (sessionKey: string) => boolean;
 };
 
 export async function startDiscordClient({
   config,
   onMessage,
+  onCancel,
 }: DiscordClientParams): Promise<void> {
   const client = new Client({
     intents: [
@@ -26,7 +28,7 @@ export async function startDiscordClient({
     partials: [Partials.Channel],
   });
 
-  const handleMessage = createDiscordMessageHandler({ config, onMessage });
+  const handleMessage = createDiscordMessageHandler({ config, onMessage, onCancel });
 
   client.once("clientReady", () => {
     console.log(`ClawNeo connected to Discord as ${client.user?.tag || "unknown-user"}.`);

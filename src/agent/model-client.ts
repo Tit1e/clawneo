@@ -6,6 +6,7 @@ type GenerateReplyParams = {
   systemPrompt: string;
   transcript: StoredMessage[];
   sessionKey: string;
+  signal?: AbortSignal;
 };
 
 export async function generateModelReply({
@@ -13,11 +14,13 @@ export async function generateModelReply({
   systemPrompt,
   transcript,
   sessionKey,
+  signal,
 }: GenerateReplyParams): Promise<ModelReplyResult> {
   return generateAgentReply({
     config,
     systemPrompt,
     transcript,
     sessionKey,
+    signal,
   });
 }

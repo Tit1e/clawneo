@@ -33,8 +33,17 @@ export function createConversationService({
   transcriptStore,
 }: ConversationServiceParams) {
   const sessionStore = createSessionStore(db);
+  const activeRuns = new Map<string, AbortController>();
 
   return {
+    cancelSession(sessionKey: string): boolean {
+      const controller = activeRuns.get(sessionKey);
+      if (!controller) {
+        return false;
+      }
+      controller.abort();
+      return true;
+    },
     async handleMessage(message: InboundMessage): Promise<void> {
       sessionStore.ensureSession(message);
 
@@ -70,12 +79,15 @@ export function createConversationService({
 
       let reply: string;
       let toolEvents: Array<{ toolName: string; content: string; rawContent: string; isError: boolean }> = [];
+      const abortController = new AbortController();
+      activeRuns.set(message.sessionKey, abortController);
       try {
         const result = await generateModelReply({
           config,
           systemPrompt: promptContext.systemPrompt,
           transcript,
           sessionKey: message.sessionKey,
+          signal: abortController.signal,
         });
         reply = result.reply;
         toolEvents = result.toolEvents;
@@ -93,10 +105,18 @@ export function createConversationService({
         const reason = error instanceof Error ? error.message : String(error);
         console.error(`[conversation] model request failed for session=${message.sessionKey}`);
         console.error(error);
-        reply =
-          preferences.response_language === "en-US"
+        const aborted = abortController.signal.aborted || reason === "Request was cancelled";
+        reply = aborted
+          ? preferences.response_language === "en-US"
+            ? "Cancelled the current run."
+            : "已取消当前运行。"
+          : preferences.response_language === "en-US"
             ? `Model request failed: ${reason}`
             : `模型请求失败：${reason}`;
+      } finally {
+        if (activeRuns.get(message.sessionKey) === abortController) {
+          activeRuns.delete(message.sessionKey);
+        }
       }
 
       console.log(

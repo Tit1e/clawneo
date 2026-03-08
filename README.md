@@ -88,12 +88,14 @@ Supported commands:
 ```text
 /help
 /status
+/cancel
 /restart
 /stop
 ```
 
 Notes:
 - these commands bypass the model
+- `/cancel` aborts the current running task for the current Discord session
 - `/stop` will take the bot offline
 - after stopping, start it again with `clawneo start`
 

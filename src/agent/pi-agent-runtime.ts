@@ -197,6 +197,7 @@ export async function generateAgentReply(params: {
   systemPrompt: string;
   transcript: StoredMessage[];
   sessionKey: string;
+  signal?: AbortSignal;
 }): Promise<ModelReplyResult> {
   const credential = await resolveOpenAICodexCredential(params.config);
   const authStorage = AuthStorage.inMemory({
@@ -265,13 +266,29 @@ export async function generateAgentReply(params: {
     }
   });
 
+  const abortSession = () => {
+    void session.abort().catch((error) => {
+      console.error(`[conversation] failed to abort session=${params.sessionKey}`);
+      console.error(error);
+    });
+  };
+
   try {
+    if (params.signal?.aborted) {
+      abortSession();
+      throw new Error("Request was cancelled");
+    }
+    params.signal?.addEventListener("abort", abortSession, { once: true });
     await session.prompt(latestUserPrompt);
+    if (params.signal?.aborted) {
+      throw new Error("Request was cancelled");
+    }
     return {
       reply: extractReply(session.state.messages),
       toolEvents,
     };
   } finally {
+    params.signal?.removeEventListener("abort", abortSession);
     unsubscribe();
     session.dispose();
   }
