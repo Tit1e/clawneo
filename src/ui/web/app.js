@@ -97,10 +97,21 @@ function renderSkillsDirStats(items) {
     return;
   }
   for (const item of stats) {
-    const div = document.createElement("div");
-    div.className = "log-line";
-    div.textContent = `${item.path}  ·  ${item.skillsCount} 个技能`;
-    container.appendChild(div);
+    const wrapper = document.createElement("div");
+    wrapper.className = "log-line";
+
+    const pathLine = document.createElement("div");
+    pathLine.textContent = `${item.path}  ·  ${item.skillsCount} 个技能`;
+    wrapper.appendChild(pathLine);
+
+    const namesLine = document.createElement("div");
+    namesLine.className = "muted";
+    namesLine.textContent = Array.isArray(item.skillNames) && item.skillNames.length > 0
+      ? item.skillNames.join(", ")
+      : "（无技能）";
+    wrapper.appendChild(namesLine);
+
+    container.appendChild(wrapper);
   }
 }
 

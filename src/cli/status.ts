@@ -29,6 +29,7 @@ export type StatusSnapshot = {
     skillsDirStats: Array<{
       path: string;
       skillsCount: number;
+      skillNames: string[];
     }>;
     dbSizeBytes: number | null;
     logSizeBytes: number | null;
@@ -253,9 +254,9 @@ function countSkills(skillsDirs: string[]): number {
   return total;
 }
 
-function collectSkillsDirStats(skillsDirs: string[]): Array<{ path: string; skillsCount: number }> {
+function collectSkillsDirStats(skillsDirs: string[]): Array<{ path: string; skillsCount: number; skillNames: string[] }> {
   return skillsDirs.map((skillsDir) => {
-    let skillsCount = 0;
+    const skillNames: string[] = [];
     if (fs.existsSync(skillsDir)) {
       try {
         const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
@@ -264,16 +265,17 @@ function collectSkillsDirStats(skillsDirs: string[]): Array<{ path: string; skil
             continue;
           }
           if (fs.existsSync(path.join(skillsDir, entry.name, "SKILL.md"))) {
-            skillsCount += 1;
+            skillNames.push(entry.name);
           }
         }
       } catch {
-        skillsCount = 0;
+        skillNames.length = 0;
       }
     }
     return {
       path: skillsDir,
-      skillsCount,
+      skillsCount: skillNames.length,
+      skillNames,
     };
   });
 }
