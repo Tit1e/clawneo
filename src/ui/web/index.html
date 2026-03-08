@@ -21,6 +21,18 @@
 
     <main class="grid">
       <section class="card">
+        <h2>应用</h2>
+        <dl>
+          <dt>版本</dt>
+          <dd id="app-version">-</dd>
+          <dt>Node.js</dt>
+          <dd id="app-node-version">-</dd>
+          <dt>平台</dt>
+          <dd id="app-platform">-</dd>
+        </dl>
+      </section>
+
+      <section class="card">
         <h2>进程</h2>
         <dl>
           <dt>运行状态</dt>
@@ -41,6 +53,8 @@
           <dd id="discord-users">-</dd>
           <dt>允许服务器数</dt>
           <dd id="discord-guilds">-</dd>
+          <dt>访问模式</dt>
+          <dd id="discord-access-mode">-</dd>
         </dl>
       </section>
 
@@ -59,7 +73,22 @@
           <dd id="runtime-db-path" class="path">-</dd>
           <dt>对话记录目录</dt>
           <dd id="runtime-transcripts" class="path">-</dd>
+          <dt>数据库大小</dt>
+          <dd id="runtime-db-size">-</dd>
+          <dt>日志大小</dt>
+          <dd id="runtime-log-size">-</dd>
+          <dt>对话记录文件数</dt>
+          <dd id="runtime-transcript-files">-</dd>
+          <dt>已加载技能数</dt>
+          <dd id="runtime-skills-count">-</dd>
         </dl>
+      </section>
+
+      <section class="card">
+        <h2>技能目录</h2>
+        <div id="skills-dir-stats" class="log-shell">
+          <div class="log-line muted">加载中...</div>
+        </div>
       </section>
 
       <section class="card">
@@ -73,6 +102,8 @@
           <dd><span id="model-auth-usable" class="badge neutral">-</span></dd>
           <dt>Token 过期</dt>
           <dd><span id="model-token-expired" class="badge neutral">-</span></dd>
+          <dt>凭证类型</dt>
+          <dd id="model-credential-type">-</dd>
           <dt>Profile 数量</dt>
           <dd id="model-profiles">-</dd>
           <dt>认证存储</dt>
