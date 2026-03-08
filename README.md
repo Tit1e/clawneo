@@ -1,41 +1,45 @@
+[中文](./README.zh-CN.md)
+
 # ClawNeo
 
-ClawNeo 是一个个人 AI 助手 CLI + Discord bridge。
+ClawNeo is a personal AI assistant CLI with a Discord bridge.
 
-它支持：
-- 通过 Discord 和助手对话
-- 使用 OpenAI Codex OAuth 登录
-- 调用 `read` / `ls` / `grep` / `bash` 工具
-- 保存用户偏好
-- 提供本地状态 UI 和基础运维命令
+It supports:
+- chatting with the assistant through Discord
+- OpenAI Codex OAuth
+- `read` / `ls` / `grep` / `bash` tools
+- structured user preferences
+- a local status UI and basic service commands
 
-当前 CLI 命令名仍然是 `clawneo`。
+The CLI command is `clawneo`.
 
-## 平台支持
+## Platform Support
 
-- macOS：支持
-- Linux：实验性支持
-- Windows：暂不支持
+- macOS: supported
+- Linux: experimental
+- Windows: not supported yet
 
-## 安装
+## Install
 
 ```bash
 npm install -g clawneo
 ```
 
-## 配置
+## Configure
 
 ```bash
 clawneo config
 ```
 
-主配置文件默认位于：
+The main config file is stored at:
 
 ```text
 ~/.clawneo/clawneo.json
 ```
 
-## 启动与停止
+## Start and Stop
+
+On first start, ClawNeo will run an interactive onboarding flow to help you complete OpenAI authorization and the required Discord configuration.
 
 ```bash
 clawneo start
@@ -45,21 +49,21 @@ clawneo status
 clawneo ui
 ```
 
-## 本地状态 UI
+## Local Status UI
 
 ```bash
 clawneo ui
 ```
 
-默认地址：
+Default address:
 
 ```text
 http://127.0.0.1:3210
 ```
 
-## Discord 系统命令
+## Discord System Commands
 
-当前支持：
+Supported commands:
 
 ```text
 /help
@@ -68,19 +72,19 @@ http://127.0.0.1:3210
 /stop
 ```
 
-说明：
-- 这些命令不经过模型
-- `/stop` 后 bot 会离线
-- 停止后需要通过 CLI 再次执行 `clawneo start`
+Notes:
+- these commands bypass the model
+- `/stop` will take the bot offline
+- after stopping, start it again with `clawneo start`
 
-## 技能目录
+## Skills Directory
 
-ClawNeo 会从以下目录加载 skills：
+ClawNeo loads skills from:
 
 - `~/.clawneo/skills`
 - `~/.agents/skills`
 
-示例结构：
+Example layout:
 
 ```text
 ~/.clawneo/skills/
@@ -88,7 +92,7 @@ ClawNeo 会从以下目录加载 skills：
     SKILL.md
 ```
 
-## 更多说明
+## More
 
-详细设计见：
+For architecture details, see:
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
