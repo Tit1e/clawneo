@@ -7,7 +7,8 @@ import {
 } from "./status.js";
 import { runUiServer } from "../ui/server.js";
 import { runConfigCommand } from "./config.js";
-import { registerServeProcessLifecycle, restartService, startService, stopService } from "./service-manager.js";
+import { registerServeProcessLifecycle, restartService, startService, stopService, isServiceRunning } from "./service-manager.js";
+import { ensureOnboardingBeforeStart } from "./onboarding.js";
 
 type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve" | "config";
 
@@ -44,6 +45,9 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
   }
 
   if (command === "start") {
+    if (!isServiceRunning()) {
+      await ensureOnboardingBeforeStart();
+    }
     startService();
     return;
   }
