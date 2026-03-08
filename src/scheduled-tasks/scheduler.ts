@@ -54,6 +54,11 @@ export function startScheduledTaskScheduler({
       runningTaskIds.add(task.id);
 
       try {
+        const claimed = store.claimTask(task.id);
+        if (!claimed) {
+          continue;
+        }
+
         const executionTime = new Date();
         const reminderMessage = renderReminderMessage(task);
         await sendDiscordMessage({

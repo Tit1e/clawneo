@@ -33,6 +33,7 @@ description: Use when the user asks to create, view, or cancel reminder-style sc
 - 先把用户意图规整成固定结构，再调用系统工具。
 - 如果时间表达有歧义，先追问，不要猜。
 - 如果任务不是“提醒型任务”，不要使用这个 skill。
+- 如果用户没有明确说明时区，允许省略 `timezone`，系统会使用当前机器的默认时区，并在创建结果里回显。
 
 ## 固定结构
 

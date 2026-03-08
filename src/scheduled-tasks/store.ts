@@ -103,6 +103,14 @@ export function createScheduledTaskStore(db: DatabaseSync) {
     SET status = 'cancelled',
         updated_at = @updated_at
     WHERE id = @id
+      AND status IN ('active', 'delivering')
+  `);
+
+  const claimTaskStatement = db.prepare(`
+    UPDATE scheduled_tasks
+    SET status = 'delivering',
+        updated_at = @updated_at
+    WHERE id = @id
       AND status = 'active'
   `);
 
@@ -178,6 +186,13 @@ export function createScheduledTaskStore(db: DatabaseSync) {
     },
     cancelTask(taskId: string): boolean {
       const result = cancelTaskStatement.run({
+        id: taskId,
+        updated_at: nowIso(),
+      });
+      return Number(result.changes) > 0;
+    },
+    claimTask(taskId: string): boolean {
+      const result = claimTaskStatement.run({
         id: taskId,
         updated_at: nowIso(),
       });

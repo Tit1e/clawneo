@@ -1,6 +1,6 @@
 export type ScheduledTaskKind = "once" | "recurring";
 export type ScheduledTaskScheduleType = "at" | "cron";
-export type ScheduledTaskStatus = "active" | "done" | "cancelled" | "failed";
+export type ScheduledTaskStatus = "active" | "delivering" | "done" | "cancelled" | "failed";
 
 export type ScheduledTask = {
   id: string;

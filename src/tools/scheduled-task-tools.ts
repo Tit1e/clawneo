@@ -81,6 +81,7 @@ export function createCreateScheduledTaskTool({
         throw new Error("reminderText is required.");
       }
 
+      const timezoneProvided = Boolean(params.timezone?.trim());
       const timezone = resolveTaskTimezone(params.timezone);
       let runAt: string | undefined;
       let cronExpr: string | undefined;
@@ -126,13 +127,23 @@ export function createCreateScheduledTaskTool({
         content: [
           {
             type: "text",
-            text: `已创建提醒任务。\n\n${formatTaskSummary(task)}`,
+            text: [
+              "已创建提醒任务。",
+              "",
+              formatTaskSummary(task),
+              timezoneProvided ? "" : "",
+              timezoneProvided ? "" : `时区未显式指定，已使用当前机器默认时区：${timezone}`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
           },
         ],
         details: {
           taskId: task.id,
           nextRunAt: task.nextRunAt,
           kind: task.kind,
+          timezone,
+          timezoneSource: timezoneProvided ? "explicit" : "system-default",
         },
       };
     },
@@ -152,6 +163,7 @@ export function createListScheduledTasksTool({
       status: Type.Optional(
         Type.Union([
           Type.Literal("active"),
+          Type.Literal("delivering"),
           Type.Literal("done"),
           Type.Literal("cancelled"),
           Type.Literal("failed"),
