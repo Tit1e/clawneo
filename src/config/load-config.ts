@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AppConfig } from "../core/types.js";
 import {
-  ensureMiniclawConfigFile,
-  ensureMiniclawStateDir,
+  ensureClawneoConfigFile,
+  ensureClawneoStateDir,
   resolveGlobalAgentsSkillsDir,
-  resolveMiniclawSkillsDir,
+  resolveClawneoSkillsDir,
   resolveStateSubPath,
 } from "./paths.js";
 
@@ -42,7 +42,7 @@ function readJsonConfig(configPath: string): JsonConfig {
     return parsed as JsonConfig;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to load MiniClaw config from ${configPath}: ${message}`);
+    throw new Error(`Failed to load ClawNeo config from ${configPath}: ${message}`);
   }
 }
 
@@ -74,31 +74,31 @@ function readList(value: unknown): string[] | undefined {
 }
 
 export function loadConfig(): AppConfig {
-  const stateDir = ensureMiniclawStateDir(process.env);
-  const configPath = ensureMiniclawConfigFile(process.env);
+  const stateDir = ensureClawneoStateDir(process.env);
+  const configPath = ensureClawneoConfigFile(process.env);
   const fileConfig = readJsonConfig(configPath);
   const dbPath = resolveStateSubPath(
-    readString(fileConfig.runtime?.dbPath) ?? process.env.MINICLAW_DB_PATH,
-    "miniclaw.db",
+    readString(fileConfig.runtime?.dbPath) ?? process.env.CLAWNEO_DB_PATH,
+    "clawneo.db",
     process.env,
   );
   const transcriptDir = resolveStateSubPath(
-    readString(fileConfig.runtime?.transcriptDir) ?? process.env.MINICLAW_TRANSCRIPT_DIR,
+    readString(fileConfig.runtime?.transcriptDir) ?? process.env.CLAWNEO_TRANSCRIPT_DIR,
     "transcripts",
     process.env,
   );
   const authStorePath = resolveStateSubPath(
-    readString(fileConfig.runtime?.authStorePath) ?? process.env.MINICLAW_AUTH_STORE_PATH,
+    readString(fileConfig.runtime?.authStorePath) ?? process.env.CLAWNEO_AUTH_STORE_PATH,
     "auth-profiles.json",
     process.env,
   );
   const workspaceRoot = resolveStateSubPath(
-    readString(fileConfig.agent?.workspaceRoot) ?? process.env.MINICLAW_WORKSPACE_ROOT,
+    readString(fileConfig.agent?.workspaceRoot) ?? process.env.CLAWNEO_WORKSPACE_ROOT,
     "workspace",
     process.env,
   );
   const toolCwd = resolveAbsolutePath(
-    readString(fileConfig.agent?.toolCwd) ?? process.env.MINICLAW_TOOL_CWD,
+    readString(fileConfig.agent?.toolCwd) ?? process.env.CLAWNEO_TOOL_CWD,
     process.env.HOME || process.cwd(),
   );
   const userProfilePath = resolveStateSubPath(
@@ -106,14 +106,14 @@ export function loadConfig(): AppConfig {
     path.join("workspace", "USER.md"),
     process.env,
   );
-  const skillsDirs = [resolveGlobalAgentsSkillsDir(), resolveMiniclawSkillsDir(process.env)];
+  const skillsDirs = [resolveGlobalAgentsSkillsDir(), resolveClawneoSkillsDir(process.env)];
 
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   fs.mkdirSync(transcriptDir, { recursive: true });
   fs.mkdirSync(path.dirname(authStorePath), { recursive: true });
   fs.mkdirSync(workspaceRoot, { recursive: true });
   fs.mkdirSync(path.dirname(userProfilePath), { recursive: true });
-  fs.mkdirSync(resolveMiniclawSkillsDir(process.env), { recursive: true });
+  fs.mkdirSync(resolveClawneoSkillsDir(process.env), { recursive: true });
 
   return {
     discord: {
@@ -130,7 +130,7 @@ export function loadConfig(): AppConfig {
     },
     agent: {
       model:
-        (readString(fileConfig.agent?.model) ?? process.env.MINICLAW_MODEL?.trim()) ||
+        (readString(fileConfig.agent?.model) ?? process.env.CLAWNEO_MODEL?.trim()) ||
         "gpt-5-codex",
       workspaceRoot,
       toolCwd,

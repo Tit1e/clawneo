@@ -1,11 +1,11 @@
 {
-  "name": "miniclaw",
+  "name": "clawneo",
   "version": "0.1.0",
   "description": "Personal AI assistant CLI and Discord bridge",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "miniclaw": "bin/miniclaw.mjs"
+    "clawneo": "bin/clawneo.mjs"
   },
   "files": [
     "bin/",

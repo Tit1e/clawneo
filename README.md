@@ -1,6 +1,6 @@
-# MiniClaw
+# ClawNeo
 
-MiniClaw 是一个个人 AI 助手 CLI + Discord bridge。
+ClawNeo 是一个个人 AI 助手 CLI + Discord bridge。
 
 它支持：
 - 通过 Discord 和助手对话
@@ -8,6 +8,8 @@ MiniClaw 是一个个人 AI 助手 CLI + Discord bridge。
 - 调用 `read` / `ls` / `grep` / `bash` 工具
 - 保存用户偏好
 - 提供本地状态 UI 和基础运维命令
+
+当前 CLI 命令名仍然是 `clawneo`。
 
 ## 平台支持
 
@@ -38,13 +40,13 @@ npm run cli -- config
 或者全局安装后：
 
 ```bash
-miniclaw config
+clawneo config
 ```
 
 主配置文件默认位于：
 
 ```text
-~/.miniclaw/miniclaw.json
+~/.clawneo/clawneo.json
 ```
 
 ## 启动与停止
@@ -62,17 +64,17 @@ npm run cli -- ui
 如果后续通过 npm 全局安装成功，则可直接使用：
 
 ```bash
-miniclaw start
-miniclaw stop
-miniclaw restart
-miniclaw status
-miniclaw ui
+clawneo start
+clawneo stop
+clawneo restart
+clawneo status
+clawneo ui
 ```
 
 ## 本地状态 UI
 
 ```bash
-miniclaw ui
+clawneo ui
 ```
 
 默认地址：
@@ -95,19 +97,19 @@ http://127.0.0.1:3210
 说明：
 - 这些命令不经过模型
 - `/stop` 后 bot 会离线
-- 停止后需要通过 CLI 再次执行 `miniclaw start`
+- 停止后需要通过 CLI 再次执行 `clawneo start`
 
 ## 技能目录
 
-MiniClaw 会从以下目录加载 skills：
+ClawNeo 会从以下目录加载 skills：
 
-- `~/.miniclaw/skills`
+- `~/.clawneo/skills`
 - `~/.agents/skills`
 
 示例结构：
 
 ```text
-~/.miniclaw/skills/
+~/.clawneo/skills/
   github-projects/
     SKILL.md
 ```

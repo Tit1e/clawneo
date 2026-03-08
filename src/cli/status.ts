@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import chalk from "chalk";
 import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
-import { ensureMiniclawStateDir, resolveMiniclawStateDir } from "../config/paths.js";
+import { ensureClawneoStateDir, resolveClawneoStateDir } from "../config/paths.js";
 import { loadConfig } from "../config/load-config.js";
 
 export type StatusSnapshot = {
@@ -38,19 +38,19 @@ export type StatusSnapshot = {
 };
 
 export function resolveDataDir(): string {
-  return resolveMiniclawStateDir();
+  return resolveClawneoStateDir();
 }
 
 export function resolvePidPath(): string {
-  return path.join(resolveDataDir(), "miniclaw.pid");
+  return path.join(resolveDataDir(), "clawneo.pid");
 }
 
 export function resolveLogPath(): string {
-  return path.join(resolveDataDir(), "miniclaw.log");
+  return path.join(resolveDataDir(), "clawneo.log");
 }
 
 export function ensureDataDir(): void {
-  ensureMiniclawStateDir();
+  ensureClawneoStateDir();
 }
 
 export function readPid(): number | null {
@@ -230,7 +230,7 @@ export function collectStatusSnapshot(): StatusSnapshot {
 
 export function renderStatusText(snapshot: StatusSnapshot): string {
   const lines: string[] = [];
-  lines.push(chalk.bold.blue("MiniClaw Status"), "");
+  lines.push(chalk.bold.blue("ClawNeo Status"), "");
 
   lines.push(sectionTitle("Process"));
   lines.push(renderField("running", colorBoolean(snapshot.process.running)));
@@ -299,7 +299,7 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
 
 export function renderStatusPlainText(snapshot: StatusSnapshot): string {
   const lines: string[] = [];
-  lines.push("MiniClaw Status", "");
+  lines.push("ClawNeo Status", "");
 
   lines.push("Process");
   lines.push(`- running: ${snapshot.process.running ? "yes" : "no"}`);

@@ -1,4 +1,4 @@
-# MiniClaw 架构方案
+# ClawNeo 架构方案
 
 ## 当前实现状态
 
@@ -9,9 +9,9 @@
 - 已完成：Discord 连接、消息接收、按 `guild/user` allowlist 放行
 - 已完成：`sessionKey` 生成与 transcript 持久化
 - 已完成：Discord 超长回复自动分片发送
-- 已完成：CLI 服务命令 `miniclaw start/stop/restart`
-- 已完成：`miniclaw status` 与 `status --json`
-- 已完成：本地只读状态 UI `miniclaw ui`
+- 已完成：CLI 服务命令 `clawneo start/stop/restart`
+- 已完成：`clawneo status` 与 `status --json`
+- 已完成：本地只读状态 UI `clawneo ui`
 - 已完成：OpenAI Codex OAuth 浏览器授权、`localhost:1455` 回调、auth store 落盘
 - 已完成：运行时优先读取项目 auth profile，并在过期时自动 refresh
 - 已完成：auth store 使用显式 `defaultProfileId` 选择当前默认 OAuth profile，避免旧 `openai-codex:default` 抢占
@@ -25,7 +25,7 @@
 - 已完成：规则化工具输出摘要与原始输出分离存储
 - 已完成：UI 前端资源拆分到 `src/ui/web/`
 - 已完成：UI 通过 `/api/status` 轮询更新，不再整页刷新
-- 已完成：UI 启动后自动尝试打开浏览器，可通过 `MINICLAW_UI_NO_OPEN=1` 关闭
+- 已完成：UI 启动后自动尝试打开浏览器，可通过 `CLAWNEO_UI_NO_OPEN=1` 关闭
 
 下面这些仍未完成，或者只完成了部分：
 
@@ -73,7 +73,7 @@
 
 ## 核心设计原则
 
-MiniClaw 应该是一个单进程应用，但内部边界要非常清楚：
+ClawNeo 应该是一个单进程应用，但内部边界要非常清楚：
 
 1. `Discord 适配层`
 2. `会话服务`
@@ -117,7 +117,7 @@ OpenClaw 本质上是一个本地 gateway / control plane，支持：
 - 记忆索引
 - 远程节点
 
-MiniClaw 只需要一条窄路径：
+ClawNeo 只需要一条窄路径：
 
 `Discord -> session -> Codex -> 命令工具 -> 回复 -> 持久化偏好`
 
@@ -154,12 +154,12 @@ MiniClaw 只需要一条窄路径：
 
 当前默认状态根目录已经统一切到：
 
-- `~/.miniclaw`
+- `~/.clawneo`
 
 也支持用下面两个环境变量覆盖：
 
-- `MINICLAW_STATE_DIR`
-- `MINICLAW_CONFIG_PATH`
+- `CLAWNEO_STATE_DIR`
+- `CLAWNEO_CONFIG_PATH`
 
 ## 运行环境
 
@@ -171,21 +171,21 @@ MiniClaw 只需要一条窄路径：
 
 说明：
 
-- MiniClaw 的 Discord、CLI、HTTP UI、配置系统本身是 Node.js 跨平台逻辑
+- ClawNeo 的 Discord、CLI、HTTP UI、配置系统本身是 Node.js 跨平台逻辑
 - 当前主要的平台约束来自工具执行层
 - 工具执行默认要求类 Unix shell
-- shell 选择顺序为：`MINICLAW_SHELL` -> `zsh` -> `bash` -> `sh`
+- shell 选择顺序为：`CLAWNEO_SHELL` -> `zsh` -> `bash` -> `sh`
 - 在 Linux 上如果没有 `zsh`，会自动回退到 `bash` 或 `sh`
 - Windows 当前不会尝试模拟 shell 兼容层，而是直接报出不支持的明确错误
 
 默认文件布局如下：
 
 ```text
-~/.miniclaw/
-  miniclaw.json
-  miniclaw.db
-  miniclaw.pid
-  miniclaw.log
+~/.clawneo/
+  clawneo.json
+  clawneo.db
+  clawneo.pid
+  clawneo.log
   auth-profiles.json
   transcripts/
   workspace/
@@ -265,11 +265,11 @@ MiniClaw 只需要一条窄路径：
 ## 建议的目录结构
 
 ```text
-miniclaw/
+clawneo/
   package.json
   ARCHITECTURE.md
   bin/
-    miniclaw.mjs
+    clawneo.mjs
   src/
     cli/
       run-main.ts
@@ -330,23 +330,23 @@ miniclaw/
 
 ### 已实现命令
 
-- `miniclaw start`
-- `miniclaw stop`
-- `miniclaw restart`
-- `miniclaw status`
-- `miniclaw status --json`
-- `miniclaw ui`
-- `miniclaw config`
+- `clawneo start`
+- `clawneo stop`
+- `clawneo restart`
+- `clawneo status`
+- `clawneo status --json`
+- `clawneo ui`
+- `clawneo config`
 
 ### 行为约定
 
-- `start`：后台启动服务，写入 `~/.miniclaw/miniclaw.pid`，日志输出到 `~/.miniclaw/miniclaw.log`
+- `start`：后台启动服务，写入 `~/.clawneo/clawneo.pid`，日志输出到 `~/.clawneo/clawneo.log`
 - `stop`：按 PID 发送 `SIGTERM`
 - `restart`：先停后启
 - `status`：输出人类可读的本地状态
 - `status --json`：输出机器可读的结构化状态，便于脚本或 UI 复用
 - `ui`：启动本地只读 HTTP 服务，不受 `start/stop` 守护进程管理
-- `config`：交互式修改 `~/.miniclaw/miniclaw.json`，每项修改后立即保存；退出时如果检测到关键运行时配置变更，且服务正在运行，则自动执行一次 `restart`
+- `config`：交互式修改 `~/.clawneo/clawneo.json`，每项修改后立即保存；退出时如果检测到关键运行时配置变更，且服务正在运行，则自动执行一次 `restart`
 
 ### Discord 系统命令
 
@@ -406,19 +406,19 @@ type StatusSnapshot = {
 
 ## 本地只读 UI
 
-MiniClaw 当前已经提供最小只读状态 UI，用于替代手动查看 PID、日志和 auth store。
+ClawNeo 当前已经提供最小只读状态 UI，用于替代手动查看 PID、日志和 auth store。
 
 ### 入口
 
-- `miniclaw ui`
-- `miniclaw ui --port 3210`
+- `clawneo ui`
+- `clawneo ui --port 3210`
 
 ### 行为
 
 - 启动前台本地 HTTP 服务
 - 默认监听 `127.0.0.1:3210`
 - 服务启动后会尝试自动打开浏览器
-- 设置 `MINICLAW_UI_NO_OPEN=1` 时跳过自动打开
+- 设置 `CLAWNEO_UI_NO_OPEN=1` 时跳过自动打开
 - 当前不提供任何写操作或控制按钮
 
 ### HTTP 路由
@@ -498,19 +498,19 @@ CREATE TABLE user_facts (
 
 默认 `USER.md` 路径现在是：
 
-- `~/.miniclaw/workspace/USER.md`
+- `~/.clawneo/workspace/USER.md`
 
 ```md
 # User Profile
 
-<!-- miniclaw:preferences:start -->
+<!-- clawneo:preferences:start -->
 - Preferred language: Simplified Chinese
 - Preferred answer style: concise
 - Preferred package manager: pnpm
 - Shell: zsh
 - Edit policy: ask before modifying files
-<!-- miniclaw:preferences:end -->
-- Current project: MiniClaw
+<!-- clawneo:preferences:end -->
+- Current project: ClawNeo
 - Goal: build a minimal OpenClaw-like Discord assistant
 ```
 
@@ -633,7 +633,7 @@ User preferences:
 
 ### 基本假设
 
-MiniClaw 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 Codex 风格能力的模型访问。
+ClawNeo 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 Codex 风格能力的模型访问。
 
 ### 第一版建议规则
 
@@ -653,7 +653,7 @@ MiniClaw 使用一个 OpenAI 认证 profile，并通过该 profile 获得兼容 
 
 ### 当前 auth store 约定
 
-- auth store 默认保存在 `~/.miniclaw/auth-profiles.json`
+- auth store 默认保存在 `~/.clawneo/auth-profiles.json`
 - 每次成功登录后，会把该 profile 记录为 `defaultProfileId`
 - 运行时优先读取 `defaultProfileId` 指向的 profile，而不是按文件内键名字典序挑选
 - 对旧格式 auth store 保持兼容
@@ -784,7 +784,7 @@ type BashToolResult = {
 
 OpenClaw 的完整安全体系之所以复杂，是因为它必须支持多主机、多工具类型和更广泛的风险面。
 
-MiniClaw 第一版只做：
+ClawNeo 第一版只做：
 
 - workspace 路径检查
 - 命令超时
@@ -876,14 +876,14 @@ Prompt 构建时，偏好解析优先级建议如下：
   },
   "agent": {
     "model": "gpt-5-codex",
-    "workspaceRoot": "~/.miniclaw/workspace"
+    "workspaceRoot": "~/.clawneo/workspace"
   },
   "runtime": {
-    "stateDir": "~/.miniclaw",
-    "configPath": "~/.miniclaw/miniclaw.json",
-    "dbPath": "~/.miniclaw/miniclaw.db",
-    "transcriptDir": "~/.miniclaw/transcripts",
-    "authStorePath": "~/.miniclaw/auth-profiles.json"
+    "stateDir": "~/.clawneo",
+    "configPath": "~/.clawneo/clawneo.json",
+    "dbPath": "~/.clawneo/clawneo.db",
+    "transcriptDir": "~/.clawneo/transcripts",
+    "authStorePath": "~/.clawneo/auth-profiles.json"
   }
 }
 ```
@@ -908,7 +908,7 @@ Prompt 构建时，偏好解析优先级建议如下：
 
 - 默认只允许单用户或 allowlist
 - 默认按 `guild/user` allowlist 控制接入
-- 工具执行目录默认取 `MINICLAW_TOOL_CWD`，未配置时回退到 `HOME`
+- 工具执行目录默认取 `CLAWNEO_TOOL_CWD`，未配置时回退到 `HOME`
 - 保留危险命令硬封禁
 - 不允许 elevated execution
 - 不允许远程挂载
@@ -957,10 +957,10 @@ Prompt 构建时，偏好解析优先级建议如下：
 
 ### Phase 5
 
-- [x] `miniclaw start/stop/restart`
-- [x] `miniclaw status`
-- [x] `miniclaw status --json`
-- [x] `miniclaw config`
+- [x] `clawneo start/stop/restart`
+- [x] `clawneo status`
+- [x] `clawneo status --json`
+- [x] `clawneo config`
 - [x] 本地只读状态 UI
 - [x] `/api/status` 接口
 - [x] UI 前后端拆分到独立目录
@@ -990,4 +990,4 @@ Prompt 构建时，偏好解析优先级建议如下：
 - 用 `USER.md` 作为人类可读资料上下文
 - transcript 单独保存
 
-这样 MiniClaw 可以在不继承 OpenClaw 全量复杂度的情况下，得到一套干净、稳定、可扩展的基础。
+这样 ClawNeo 可以在不继承 OpenClaw 全量复杂度的情况下，得到一套干净、稳定、可扩展的基础。

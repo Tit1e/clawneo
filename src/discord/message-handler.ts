@@ -68,7 +68,7 @@ async function replyToDiscordMessage(message: Message, content: string): Promise
 
 function renderSystemCommandHelp(): string {
   return [
-    "MiniClaw 系统命令：",
+    "ClawNeo 系统命令：",
     "",
     "- /help：查看这份命令说明",
     "- /status：查看当前服务状态",
@@ -78,7 +78,7 @@ function renderSystemCommandHelp(): string {
     "说明：",
     "- 这些命令不经过 AI 模型",
     "- /stop 后 bot 会离线",
-    "- 停止后需要通过 CLI 执行 miniclaw start 才能重新启动",
+    "- 停止后需要通过 CLI 执行 clawneo start 才能重新启动",
   ].join("\n");
 }
 
@@ -119,7 +119,7 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       console.log(
         `[discord] system command /restart from user=${message.author.id} channel=${message.channelId}`,
       );
-      await replyToDiscordMessage(message, "MiniClaw 正在重启。");
+      await replyToDiscordMessage(message, "ClawNeo 正在重启。");
       runDetachedServiceCommand("restart");
       return;
     }
@@ -128,7 +128,7 @@ export function createDiscordMessageHandler({ config, onMessage }: MessageHandle
       console.log(
         `[discord] system command /stop from user=${message.author.id} channel=${message.channelId}`,
       );
-      await replyToDiscordMessage(message, "MiniClaw 正在停止，稍后将离线。");
+      await replyToDiscordMessage(message, "ClawNeo 正在停止，稍后将离线。");
       runDetachedServiceCommand("stop");
       return;
     }

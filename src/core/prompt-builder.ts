@@ -18,7 +18,7 @@ export function buildPromptContext({ config, preferences, transcript }: PromptCo
 
   return {
     systemPrompt: [
-      "You are MiniClaw, a personal Discord assistant.",
+      "You are ClawNeo, a personal Discord assistant.",
       "Be accurate, concise, and practical.",
       "When user preferences are explicit, follow them unless they conflict with safety or direct task requirements.",
       [

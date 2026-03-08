@@ -22,11 +22,11 @@ const HARD_BLOCKED_PATTERNS: RegExp[] = [
 function resolveShellExecutable(): string {
   if (process.platform === "win32") {
     throw new Error(
-      "MiniClaw tool execution is not supported on Windows yet. The current shell tool requires a Unix shell.",
+      "ClawNeo tool execution is not supported on Windows yet. The current shell tool requires a Unix shell.",
     );
   }
 
-  const configuredShell = process.env.MINICLAW_SHELL?.trim();
+  const configuredShell = process.env.CLAWNEO_SHELL?.trim();
   if (configuredShell) {
     return configuredShell;
   }
@@ -159,7 +159,7 @@ export function createSecureBashOperations(): BashOperations {
             finish(() =>
               reject(
                 new Error(
-                  `Shell executable not found: ${shellExecutable}. Set MINICLAW_SHELL to a valid shell path.`,
+                  `Shell executable not found: ${shellExecutable}. Set CLAWNEO_SHELL to a valid shell path.`,
                 ),
               ),
             );

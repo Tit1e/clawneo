@@ -5,7 +5,7 @@ import { input, password, select } from "@inquirer/prompts";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
 import { loadConfig } from "../config/load-config.js";
-import { ensureMiniclawConfigFile } from "../config/paths.js";
+import { ensureClawneoConfigFile } from "../config/paths.js";
 import { isServiceRunning, restartService } from "./service-manager.js";
 
 type ConfigObject = Record<string, unknown>;
@@ -43,7 +43,7 @@ function readConfigDocument(configPath: string): MutableConfig {
   }
   const parsed = JSON.parse(raw) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`MiniClaw config at ${configPath} must be a JSON object.`);
+    throw new Error(`ClawNeo config at ${configPath} must be a JSON object.`);
   }
   return parsed as MutableConfig;
 }
@@ -440,12 +440,12 @@ function printDraftPreview(draft: MutableConfig): void {
 
 export async function runConfigCommand(): Promise<void> {
   assertInteractiveTerminal();
-  const configPath = ensureMiniclawConfigFile(process.env);
+  const configPath = ensureClawneoConfigFile(process.env);
   const initialDraft = sanitizeConfigDocument(readConfigDocument(configPath));
   const draft = cloneConfig(initialDraft);
 
   while (true) {
-    printHeader("MiniClaw 配置", configPath);
+    printHeader("ClawNeo 配置", configPath);
     printMainSummary(configPath);
     const choice = await select({
       message: "主菜单",
@@ -482,7 +482,7 @@ export async function runConfigCommand(): Promise<void> {
     if (needsRestart) {
       if (isServiceRunning()) {
         console.log("");
-        console.log(chalk.yellow("配置已保存，检测到运行时配置变更，正在重启 MiniClaw..."));
+        console.log(chalk.yellow("配置已保存，检测到运行时配置变更，正在重启 ClawNeo..."));
         restartService();
       } else {
         console.log("");

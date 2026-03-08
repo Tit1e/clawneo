@@ -51,8 +51,8 @@ const MANAGED_PREFERENCES: ManagedPreference[] = [
   },
 ];
 
-const MANAGED_BLOCK_START = "<!-- miniclaw:preferences:start -->";
-const MANAGED_BLOCK_END = "<!-- miniclaw:preferences:end -->";
+const MANAGED_BLOCK_START = "<!-- clawneo:preferences:start -->";
+const MANAGED_BLOCK_END = "<!-- clawneo:preferences:end -->";
 
 function buildManagedLines(preferences: UserPreferences): string[] {
   return MANAGED_PREFERENCES.flatMap(({ key, label, format }) => {

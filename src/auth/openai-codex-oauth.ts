@@ -106,7 +106,7 @@ async function loginWithRetry(): Promise<Awaited<ReturnType<typeof loginOpenAICo
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       return await loginOpenAICodex({
-        originator: "miniclaw",
+        originator: "clawneo",
         onAuth: ({ url, instructions }) => {
           console.log("OpenAI Codex OAuth started.");
           if (instructions) {
@@ -134,7 +134,7 @@ async function loginWithRetry(): Promise<Awaited<ReturnType<typeof loginOpenAICo
 
 async function promptForInput(message: string): Promise<string> {
   if (!stdin.isTTY || !stdout.isTTY) {
-    throw new Error(`${message}\nMiniClaw is running in a non-interactive terminal, so paste fallback is unavailable.`);
+    throw new Error(`${message}\nClawNeo is running in a non-interactive terminal, so paste fallback is unavailable.`);
   }
 
   const rl = readline.createInterface({ input: stdin, output: stdout });

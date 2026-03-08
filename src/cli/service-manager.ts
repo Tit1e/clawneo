@@ -26,7 +26,7 @@ function resolveCliEntrypoint(): string[] {
 export function startService(): { started: boolean; pid: number | null; logPath: string | null } {
   const runningPid = ensureFreshPidState();
   if (runningPid) {
-    console.log(`${chalk.yellow("MiniClaw is already running")} ${chalk.dim(`(pid ${runningPid})`)}.`);
+    console.log(`${chalk.yellow("ClawNeo is already running")} ${chalk.dim(`(pid ${runningPid})`)}.`);
     return { started: false, pid: runningPid, logPath: null };
   }
 
@@ -42,7 +42,7 @@ export function startService(): { started: boolean; pid: number | null; logPath:
   });
 
   if (!child.pid) {
-    throw new Error("Failed to determine MiniClaw child process id.");
+    throw new Error("Failed to determine ClawNeo child process id.");
   }
 
   writePid(child.pid);
@@ -50,7 +50,7 @@ export function startService(): { started: boolean; pid: number | null; logPath:
   fs.closeSync(stdoutFd);
   fs.closeSync(stderrFd);
 
-  console.log(`${chalk.green("MiniClaw started")} ${chalk.dim(`(pid ${child.pid})`)}.`);
+  console.log(`${chalk.green("ClawNeo started")} ${chalk.dim(`(pid ${child.pid})`)}.`);
   console.log(`${chalk.bold("Log:")} ${chalk.dim(logPath)}`);
   return { started: true, pid: child.pid, logPath };
 }
@@ -58,13 +58,13 @@ export function startService(): { started: boolean; pid: number | null; logPath:
 export function stopService(): { stopped: boolean; pid: number | null } {
   const runningPid = ensureFreshPidState();
   if (!runningPid) {
-    console.log(chalk.yellow("MiniClaw is not running."));
+    console.log(chalk.yellow("ClawNeo is not running."));
     return { stopped: false, pid: null };
   }
 
   process.kill(runningPid, "SIGTERM");
   removePidFile();
-  console.log(`${chalk.green("MiniClaw stopped")} ${chalk.dim(`(pid ${runningPid})`)}.`);
+  console.log(`${chalk.green("ClawNeo stopped")} ${chalk.dim(`(pid ${runningPid})`)}.`);
   return { stopped: true, pid: runningPid };
 }
 

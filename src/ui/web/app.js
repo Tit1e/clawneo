@@ -99,7 +99,7 @@ async function tick() {
   try {
     await refresh();
   } catch (error) {
-    console.error("Failed to refresh MiniClaw UI", error);
+    console.error("Failed to refresh ClawNeo UI", error);
     setText("updated-at", "更新时间：刷新失败");
   }
 }

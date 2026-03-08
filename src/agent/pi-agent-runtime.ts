@@ -48,7 +48,7 @@ function resolveModel(modelRegistry: ModelRegistry, rawModel: string): Model<Api
   }
 
   if (provider !== "openai-codex") {
-    throw new Error(`Unsupported provider "${provider}". MiniClaw currently only supports openai-codex.`);
+    throw new Error(`Unsupported provider "${provider}". ClawNeo currently only supports openai-codex.`);
   }
 
   return {

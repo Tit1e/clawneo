@@ -46,7 +46,7 @@ function serveStaticFile(filePath: string, res: http.ServerResponse): void {
 }
 
 function tryOpenBrowser(url: string): void {
-  if (process.env.MINICLAW_UI_NO_OPEN === "1") {
+  if (process.env.CLAWNEO_UI_NO_OPEN === "1") {
     return;
   }
 
@@ -98,7 +98,7 @@ export async function runUiServer(port = 3210): Promise<void> {
   });
 
   const url = `http://127.0.0.1:${port}`;
-  console.log(chalk.green(`MiniClaw UI listening on ${url}`));
+  console.log(chalk.green(`ClawNeo UI listening on ${url}`));
   tryOpenBrowser(url);
 
   await new Promise<void>((resolve) => {

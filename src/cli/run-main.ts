@@ -12,7 +12,7 @@ import { registerServeProcessLifecycle, restartService, startService, stopServic
 type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve" | "config";
 
 function printUsage(): void {
-  console.log(`${chalk.bold("Usage:")} miniclaw <start|stop|restart|status|ui|config>`);
+  console.log(`${chalk.bold("Usage:")} clawneo <start|stop|restart|status|ui|config>`);
 }
 
 function statusCommand(jsonMode: boolean): void {
@@ -78,7 +78,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 }
 
 runCli().catch((error: unknown) => {
-  console.error("MiniClaw CLI failed.");
+  console.error("ClawNeo CLI failed.");
   console.error(error);
   process.exitCode = 1;
 });

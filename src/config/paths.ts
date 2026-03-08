@@ -9,30 +9,30 @@ function expandHome(input: string): string {
   return path.join(os.homedir(), input.slice(1));
 }
 
-export function resolveMiniclawStateDir(env: NodeJS.ProcessEnv = process.env): string {
-  const override = env.MINICLAW_STATE_DIR?.trim();
+export function resolveClawneoStateDir(env: NodeJS.ProcessEnv = process.env): string {
+  const override = env.CLAWNEO_STATE_DIR?.trim();
   if (override) {
     return path.resolve(expandHome(override));
   }
-  return path.join(os.homedir(), ".miniclaw");
+  return path.join(os.homedir(), ".clawneo");
 }
 
-export function ensureMiniclawStateDir(env: NodeJS.ProcessEnv = process.env): string {
-  const stateDir = resolveMiniclawStateDir(env);
+export function ensureClawneoStateDir(env: NodeJS.ProcessEnv = process.env): string {
+  const stateDir = resolveClawneoStateDir(env);
   fs.mkdirSync(stateDir, { recursive: true });
   return stateDir;
 }
 
-export function resolveMiniclawConfigPath(env: NodeJS.ProcessEnv = process.env): string {
-  const override = env.MINICLAW_CONFIG_PATH?.trim();
+export function resolveClawneoConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  const override = env.CLAWNEO_CONFIG_PATH?.trim();
   if (override) {
     return path.resolve(expandHome(override));
   }
-  return path.join(resolveMiniclawStateDir(env), "miniclaw.json");
+  return path.join(resolveClawneoStateDir(env), "clawneo.json");
 }
 
-export function ensureMiniclawConfigFile(env: NodeJS.ProcessEnv = process.env): string {
-  const configPath = resolveMiniclawConfigPath(env);
+export function ensureClawneoConfigFile(env: NodeJS.ProcessEnv = process.env): string {
+  const configPath = resolveClawneoConfigPath(env);
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   if (!fs.existsSync(configPath)) {
     fs.writeFileSync(
@@ -48,7 +48,7 @@ export function ensureMiniclawConfigFile(env: NodeJS.ProcessEnv = process.env): 
             model: "gpt-5-codex",
           },
           runtime: {
-            note: "Primary MiniClaw config file.",
+            note: "Primary ClawNeo config file.",
           },
         },
         null,
@@ -60,8 +60,8 @@ export function ensureMiniclawConfigFile(env: NodeJS.ProcessEnv = process.env): 
   return configPath;
 }
 
-export function resolveMiniclawSkillsDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolveMiniclawStateDir(env), "skills");
+export function resolveClawneoSkillsDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveClawneoStateDir(env), "skills");
 }
 
 export function resolveGlobalAgentsSkillsDir(): string {
@@ -73,7 +73,7 @@ export function resolveStateSubPath(
   fallbackRelativePath: string,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  const stateDir = resolveMiniclawStateDir(env);
+  const stateDir = resolveClawneoStateDir(env);
   if (!value?.trim()) {
     return path.join(stateDir, fallbackRelativePath);
   }

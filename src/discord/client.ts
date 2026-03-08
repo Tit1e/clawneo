@@ -29,7 +29,7 @@ export async function startDiscordClient({
   const handleMessage = createDiscordMessageHandler({ config, onMessage });
 
   client.once("clientReady", () => {
-    console.log(`MiniClaw connected to Discord as ${client.user?.tag || "unknown-user"}.`);
+    console.log(`ClawNeo connected to Discord as ${client.user?.tag || "unknown-user"}.`);
   });
 
   client.on("messageCreate", async (message: Message) => {
