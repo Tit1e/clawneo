@@ -1,17 +1,26 @@
 {
   "name": "miniclaw",
   "version": "0.1.0",
-  "private": true,
+  "description": "Personal AI assistant CLI and Discord bridge",
   "type": "module",
+  "main": "dist/index.js",
   "bin": {
     "miniclaw": "bin/miniclaw.mjs"
   },
+  "files": [
+    "bin/",
+    "dist/",
+    "ARCHITECTURE.md",
+    "USER.md"
+  ],
   "scripts": {
     "start": "node --import tsx src/index.ts",
     "dev": "node --import tsx --watch src/index.ts",
     "cli": "node --import tsx src/cli/run-main.ts",
     "auth:login": "node --import tsx src/auth/login.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-ui-assets.mjs",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",

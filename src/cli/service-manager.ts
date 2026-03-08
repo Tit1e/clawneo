@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import process from "node:process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import {
   ensureDataDir,
@@ -10,6 +12,16 @@ import {
   resolveLogPath,
   writePid,
 } from "./status.js";
+
+function resolveCliEntrypoint(): string[] {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const distEntry = path.join(currentDir, "run-main.js");
+  if (fs.existsSync(distEntry)) {
+    return [...process.execArgv, distEntry];
+  }
+  const srcEntry = path.resolve(currentDir, "run-main.ts");
+  return [...process.execArgv, srcEntry];
+}
 
 export function startService(): { started: boolean; pid: number | null; logPath: string | null } {
   const runningPid = ensureFreshPidState();
@@ -22,7 +34,7 @@ export function startService(): { started: boolean; pid: number | null; logPath:
   const logPath = resolveLogPath();
   const stdoutFd = fs.openSync(logPath, "a");
   const stderrFd = fs.openSync(logPath, "a");
-  const child = spawn(process.execPath, [...process.execArgv, "src/cli/run-main.ts", "serve"], {
+  const child = spawn(process.execPath, [...resolveCliEntrypoint(), "serve"], {
     cwd: process.cwd(),
     detached: true,
     stdio: ["ignore", stdoutFd, stderrFd],
@@ -62,7 +74,7 @@ export function restartService(): void {
 }
 
 export function runDetachedServiceCommand(command: "stop" | "restart"): void {
-  const child = spawn(process.execPath, [...process.execArgv, "src/cli/run-main.ts", command], {
+  const child = spawn(process.execPath, [...resolveCliEntrypoint(), command], {
     cwd: process.cwd(),
     detached: true,
     stdio: "ignore",

@@ -161,6 +161,23 @@ MiniClaw 只需要一条窄路径：
 - `MINICLAW_STATE_DIR`
 - `MINICLAW_CONFIG_PATH`
 
+## 运行环境
+
+当前建议的运行环境矩阵：
+
+- 正式支持：`macOS`
+- 实验性支持：`Linux`
+- 暂不支持：`Windows`
+
+说明：
+
+- MiniClaw 的 Discord、CLI、HTTP UI、配置系统本身是 Node.js 跨平台逻辑
+- 当前主要的平台约束来自工具执行层
+- 工具执行默认要求类 Unix shell
+- shell 选择顺序为：`MINICLAW_SHELL` -> `zsh` -> `bash` -> `sh`
+- 在 Linux 上如果没有 `zsh`，会自动回退到 `bash` 或 `sh`
+- Windows 当前不会尝试模拟 shell 兼容层，而是直接报出不支持的明确错误
+
 默认文件布局如下：
 
 ```text

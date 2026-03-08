@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { spawn } from "node:child_process";
 import type { BashOperations } from "@mariozechner/pi-coding-agent";
 
@@ -17,6 +18,36 @@ const HARD_BLOCKED_PATTERNS: RegExp[] = [
   /rm\s+-rf\s+--no-preserve-root/i,
   /:\(\)\s*\{\s*:\|:\s*&\s*\};:/,
 ];
+
+function resolveShellExecutable(): string {
+  if (process.platform === "win32") {
+    throw new Error(
+      "MiniClaw tool execution is not supported on Windows yet. The current shell tool requires a Unix shell.",
+    );
+  }
+
+  const configuredShell = process.env.MINICLAW_SHELL?.trim();
+  if (configuredShell) {
+    return configuredShell;
+  }
+
+  const candidates = [
+    "/bin/zsh",
+    "/usr/bin/zsh",
+    "/bin/bash",
+    "/usr/bin/bash",
+    "/bin/sh",
+    "/usr/bin/sh",
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return "sh";
+}
 
 function assertSafeCommand(command: string): void {
   const trimmed = command.trim();
@@ -57,13 +88,15 @@ export async function runSecureBashCommand(params: {
 }
 
 export function createSecureBashOperations(): BashOperations {
+  const shellExecutable = resolveShellExecutable();
+
   return {
     exec(command, cwd, { onData, signal, timeout, env }) {
       assertSafeCommand(command);
       const timeoutSeconds = clampTimeoutSeconds(timeout);
 
       return new Promise((resolve, reject) => {
-        const child = spawn("/bin/zsh", ["-lc", command], {
+        const child = spawn(shellExecutable, ["-lc", command], {
           cwd,
           env,
           stdio: ["ignore", "pipe", "pipe"],
@@ -122,6 +155,16 @@ export function createSecureBashOperations(): BashOperations {
         child.stderr.on("data", handleData);
         child.on("error", (error) => {
           clearTimeout(timeoutHandle);
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            finish(() =>
+              reject(
+                new Error(
+                  `Shell executable not found: ${shellExecutable}. Set MINICLAW_SHELL to a valid shell path.`,
+                ),
+              ),
+            );
+            return;
+          }
           finish(() => reject(error));
         });
         child.on("close", (exitCode) => {
