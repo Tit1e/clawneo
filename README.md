@@ -31,6 +31,8 @@ npm install -g clawneo
 clawneo config
 ```
 
+To authorize or re-authorize OpenAI at any time, open `clawneo config` and select `OpenAI Settings` -> `Authorize OpenAI`.
+
 The main config file is stored at:
 
 ```text

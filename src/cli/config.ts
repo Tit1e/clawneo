@@ -2,8 +2,7 @@ import fs from "node:fs";
 import process from "node:process";
 import chalk from "chalk";
 import { input, password, select } from "@inquirer/prompts";
-import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
-import { ensureAuthStore, resolveDefaultOpenAICodexProfile } from "../auth/store.js";
+import { loginWithOpenAICodexOAuth } from "../auth/openai-codex-oauth.js";
 import { loadConfig } from "../config/load-config.js";
 import { ensureClawneoConfigFile } from "../config/paths.js";
 import { isServiceRunning, restartService } from "./service-manager.js";
@@ -219,67 +218,20 @@ function setListField(
   section[field] = value;
 }
 
-function isCredentialExpired(credential: { type: "oauth"; expires: number } | { type: "token"; expires?: number }): boolean | null {
-  if (credential.type === "oauth") {
-    return Date.now() >= credential.expires;
-  }
-  if (!credential.expires) {
-    return null;
-  }
-  return Date.now() >= credential.expires;
-}
-
-function classifyOpenAiAuthReason(
-  profile: ReturnType<typeof resolveDefaultOpenAICodexProfile>,
-  error: unknown,
-): string {
-  if (!profile) {
-    return "未找到授权信息";
-  }
-
-  const expired = isCredentialExpired(profile.credential);
-  if (expired === true) {
-    return "授权已失效";
-  }
-
-  const message = error instanceof Error ? error.message : String(error);
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes("expired") || normalized.includes("re-authenticate")) {
-    return "授权已失效";
-  }
-
-  if (
-    normalized.includes("invalid")
-    || normalized.includes("missing")
-    || normalized.includes("parse")
-    || normalized.includes("malformed")
-    || normalized.includes("credential")
-  ) {
-    return "授权信息无效";
-  }
-
-  return "授权信息读取失败";
-}
-
-async function runOpenAiAuthCheck(): Promise<void> {
+async function runOpenAiAuthorization(): Promise<void> {
   const config = loadConfig();
 
   console.log("");
-  console.log(chalk.bold("OpenAI 登录状态"));
+  console.log(chalk.bold("OpenAI 授权"));
   console.log("");
 
-  const initialStore = ensureAuthStore(config.runtime.authStorePath);
-  const initialProfile = resolveDefaultOpenAICodexProfile(initialStore);
-
   try {
-    await resolveOpenAICodexCredential(config);
-    console.log(`${chalk.dim("-")} 已授权：${chalk.green("是")}`);
+    await loginWithOpenAICodexOAuth(config);
+    console.log(`${chalk.dim("-")} 结果：${chalk.green("授权成功")}`);
   } catch (error) {
-    console.log(`${chalk.dim("-")} 已授权：${chalk.red("否")}`);
-    console.log(
-      `${chalk.dim("-")} 原因：${chalk.yellow(classifyOpenAiAuthReason(initialProfile, error))}`,
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`${chalk.dim("-")} 结果：${chalk.red("授权失败")}`);
+    console.log(`${chalk.dim("-")} 原因：${chalk.yellow(message)}`);
   }
 
   console.log("");
@@ -293,7 +245,7 @@ async function runOpenAiMenu(draft: MutableConfig, configPath: string): Promise<
       message: "OpenAI 设置",
       choices: [
         { name: `模型（${trimString(agentSection.model) ?? "gpt-5-codex"}）`, value: "model" },
-        { name: "验证登录状态", value: "validateLogin" },
+        { name: "授权 OpenAI", value: "authorizeOpenAi" },
         { name: "返回上一级", value: "back" },
       ],
     });
@@ -302,8 +254,8 @@ async function runOpenAiMenu(draft: MutableConfig, configPath: string): Promise<
       return;
     }
 
-    if (choice === "validateLogin") {
-      await runOpenAiAuthCheck();
+    if (choice === "authorizeOpenAi") {
+      await runOpenAiAuthorization();
       continue;
     }
 

@@ -31,6 +31,8 @@ npm install -g clawneo
 clawneo config
 ```
 
+如果你需要随时授权或重新授权 OpenAI，请进入 `clawneo config`，然后选择 `OpenAI 设置` -> `授权 OpenAI`。
+
 主配置文件默认位于：
 
 ```text
