@@ -67,6 +67,11 @@ function parseIds(raw: string): string[] {
 
 async function collectChecks(): Promise<OnboardingCheck> {
   const config = loadConfig();
+  const draft = readConfigDocument(config.runtime.configPath);
+  const discordSection =
+    draft.discord && typeof draft.discord === "object" && !Array.isArray(draft.discord)
+      ? draft.discord
+      : undefined;
 
   let openAiAuthorized = false;
   try {
@@ -80,7 +85,9 @@ async function collectChecks(): Promise<OnboardingCheck> {
     openAiAuthorized,
     needsDiscordToken: !config.discord.token.trim(),
     needsDiscordScope:
-      config.discord.allowedUserIds.length === 0 && config.discord.allowedGuildIds.length === 0,
+      !discordSection
+      || (!Object.hasOwn(discordSection, "allowedUserIds")
+        && !Object.hasOwn(discordSection, "allowedGuildIds")),
   };
 }
 
@@ -133,7 +140,8 @@ async function runDiscordTokenStep(configPath: string): Promise<void> {
 async function runDiscordScopeStep(configPath: string): Promise<void> {
   console.log("");
   console.log(chalk.bold("Discord 访问范围：未配置"));
-  console.log(chalk.dim("至少需要配置允许的用户 ID 或服务器 ID。"));
+  console.log(chalk.dim("Allowed User IDs 和 Allowed Guild IDs 都可以留空。"));
+  console.log(chalk.dim("如果都留空，ClawNeo 将不限制 Discord 访问范围。"));
   console.log(chalk.dim("多个 ID 请使用英文逗号分隔。"));
   console.log("");
 
@@ -146,10 +154,6 @@ async function runDiscordScopeStep(configPath: string): Promise<void> {
 
   const allowedUserIds = parseIds(userIdsRaw);
   const allowedGuildIds = parseIds(guildIdsRaw);
-
-  if (allowedUserIds.length === 0 && allowedGuildIds.length === 0) {
-    throw new Error("未配置允许的 Discord 用户或服务器，已取消首次启动引导。");
-  }
 
   const draft = readConfigDocument(configPath);
   const discord = ensureSection(draft, "discord");
