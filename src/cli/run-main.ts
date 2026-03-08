@@ -1,4 +1,5 @@
 import process from "node:process";
+import { createRequire } from "node:module";
 import chalk from "chalk";
 import { runApp } from "../app.js";
 import {
@@ -11,9 +12,12 @@ import { registerServeProcessLifecycle, restartService, startService, stopServic
 import { ensureOnboardingBeforeStart } from "./onboarding.js";
 
 type CliCommand = "start" | "stop" | "restart" | "status" | "ui" | "serve" | "config";
+const require = createRequire(import.meta.url);
+const packageVersion = String((require("../../package.json") as { version?: string }).version || "0.0.0");
 
 function printUsage(): void {
   console.log(`${chalk.bold("Usage:")} clawneo <start|stop|restart|status|ui|config>`);
+  console.log(`${chalk.bold("Version:")} clawneo -v | --version`);
 }
 
 function statusCommand(jsonMode: boolean): void {
@@ -33,6 +37,17 @@ async function runServeCommand(): Promise<void> {
 export async function runCli(argv: string[] = process.argv): Promise<void> {
   const command = (argv[2]?.trim().toLowerCase() || "start") as CliCommand;
   const jsonMode = argv.includes("--json");
+
+  if (argv[2] === "-v" || argv[2] === "--version") {
+    console.log(packageVersion);
+    return;
+  }
+
+  if (argv[2] === "-h" || argv[2] === "--help") {
+    printUsage();
+    return;
+  }
+
   const portArgIndex = argv.indexOf("--port");
   const port =
     portArgIndex !== -1 && argv[portArgIndex + 1]

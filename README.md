@@ -25,6 +25,15 @@ The CLI command is `clawneo`.
 npm install -g clawneo
 ```
 
+Basic CLI help:
+
+```bash
+clawneo -h
+clawneo --help
+clawneo -v
+clawneo --version
+```
+
 ## Configure
 
 ```bash

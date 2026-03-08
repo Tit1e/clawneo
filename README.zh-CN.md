@@ -25,6 +25,15 @@ ClawNeo 是一个个人 AI 助手 CLI 与 Discord bridge。
 npm install -g clawneo
 ```
 
+基础 CLI 帮助：
+
+```bash
+clawneo -h
+clawneo --help
+clawneo -v
+clawneo --version
+```
+
 ## 配置
 
 ```bash
