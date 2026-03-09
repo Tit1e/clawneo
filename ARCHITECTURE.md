@@ -27,11 +27,16 @@
 - 已完成：UI 通过 `/api/status` 轮询更新，不再整页刷新
 - 已完成：UI 启动后自动尝试打开浏览器，可通过 `CLAWNEO_UI_NO_OPEN=1` 关闭
 - 已完成：Discord 会话取消 `/cancel`
+- 已完成：Discord slash commands 注册与处理
+- 已完成：系统命令 `/help` `/status` `/cancel` `/update` `/restart` `/stop`
+- 已完成：多目录 skills 加载（bundled、`~/.agents/skills`、`~/.clawneo/skills`）
+- 已完成：`install_skill` 工具与本地/全局技能安装入口
 - 已完成：自然语言提醒型定时任务的第一版系统能力（实验性）
   - 已完成：内置 reminder skill
   - 已完成：`SQLite` 任务表与系统工具
   - 已完成：单进程内 scheduler 与直接 Discord 提醒投递
   - 当前语义：按单实例运行设计，DST 保持 cron 自然语义
+- 部分完成：命令审批数据层骨架已落库（`pending_command_approvals`），但“确认后执行”闭环仍未启用
 
 下面这些仍未完成，或者只完成了部分：
 
@@ -229,6 +234,21 @@ ClawNeo 只需要一条窄路径：
 - 已完成：`USER.md` 作为补充上下文参与 prompt 构建
 - 已完成：将稳定偏好同步写入 `USER.md` 的受管区块
 
+### Skills 目录与加载
+
+当前 runtime 会按顺序加载多个 skills 目录：
+
+- bundled skills
+- `~/.agents/skills`
+- `~/.clawneo/skills`
+
+约定：
+
+- 同名 skill 以后加载的目录为准
+- `install_skill` 默认安装到 `~/.clawneo/skills`
+- 只有用户显式要求全局安装时，才写入 `~/.agents/skills`
+- 这套能力属于 runtime 资源加载，不等同于 npm 插件系统
+
 ## 为什么不能把所有偏好都放进 USER.md
 
 `USER.md` 很适合放人类可读资料，但不适合做权威结构化状态：
@@ -250,7 +270,7 @@ ClawNeo 只需要一条窄路径：
 
 - `response_language = zh-CN`
 - `answer_style = concise`
-- `package_manager = pnpm`
+- `package_manager = npm`
 - `shell = zsh`
 - `edit_policy = ask_before_modify`
 - `reply_format = short_paragraph`
@@ -302,37 +322,56 @@ clawneo/
     clawneo.mjs
   src/
     cli/
+      config.ts
+      onboarding.ts
       run-main.ts
+      service-manager.ts
       status.ts
+    config/
+      load-config.ts
+      paths.ts
     discord/
       client.ts
       message-handler.ts
-      outbound.ts
+      notifier.ts
+      reply.ts
+      system-commands.ts
     core/
       conversation-service.ts
-      session-manager.ts
       prompt-builder.ts
+      session-key.ts
+      session-store.ts
       types.ts
     agent/
-      agent-runner.ts
       model-client.ts
-      tool-loop.ts
+      pi-agent-runtime.ts
+      pi-codex-runtime.ts
     tools/
-      bash-tool.ts
-      preference-tool.ts
-      types.ts
+      output-summary.ts
+      scheduled-task-tools.ts
+      secure-bash.ts
+      skill-installer.ts
     preferences/
-      preference-store.ts
-      preference-extractor.ts
+      explicit-updates.ts
       user-profile-sync.ts
+    scheduled-tasks/
+      scheduler.ts
+      store.ts
+      time.ts
+      types.ts
     transcripts/
       transcript-store.ts
     store/
       db.ts
       migrations.ts
     auth/
-      openai-auth.ts
-      token-store.ts
+      login.ts
+      openai-codex-oauth.ts
+      store.ts
+      types.ts
+    skills/
+      clawneo-reminder-scheduler/
+      clawneo-skill-installer/
     ui/
       server.ts
       web/
@@ -341,11 +380,16 @@ clawneo/
         styles.css
 ```
 
-说明：上面是目标结构，不是当前文件树的逐字镜像。当前已经实际存在的关键目录主要是：
+说明：上面更接近当前实现，但仍然是为了说明职责而整理过的归纳视图，不要求与实际文件树逐行完全一致。当前关键目录主要包括：
 
+- `src/cli`
+- `src/config`
 - `src/discord`
 - `src/core`
 - `src/agent`
+- `src/preferences`
+- `src/scheduled-tasks`
+- `src/skills`
 - `src/auth`
 - `src/tools`
 - `src/preferences`
@@ -380,10 +424,12 @@ clawneo/
 
 ### Discord 系统命令
 
-当前 Discord 已支持一组不经过模型的系统硬路由命令：
+当前 Discord 已支持一组不经过模型的系统硬路由命令，并同时提供文本命令与 slash command 两种入口：
 
 - `/help`
 - `/status`
+- `/cancel`
+- `/update`
 - `/restart`
 - `/stop`
 
@@ -392,6 +438,8 @@ clawneo/
 - 这些命令不进入 agent，不写入 transcript，也不污染会话上下文
 - `/help`：返回当前系统命令说明
 - `/status`：直接返回当前本地状态快照
+- `/cancel`：只取消当前 Discord 会话正在运行的任务，不停止整个服务
+- `/update`：作为系统命令在后台执行升级并自动重启；这是运维路径，不属于 agent 普通工具能力
 - `/restart`：先回复确认文本，再由脱离当前 bot 进程的 CLI 子进程执行重启
 - `/stop`：先回复确认文本，再由脱离当前 bot 进程的 CLI 子进程执行停止
 - 未知的 `/xxx` 命令不会进入模型，而是直接返回帮助说明
@@ -403,6 +451,11 @@ clawneo/
 
 ```ts
 type StatusSnapshot = {
+  app: {
+    version: string;
+    nodeVersion: string;
+    platform: string;
+  };
   process: {
     running: boolean;
     pid: number | null;
@@ -416,11 +469,21 @@ type StatusSnapshot = {
     dbPath: string;
     transcriptDir: string;
     skillsDirs: string[];
+    skillsDirStats: Array<{
+      path: string;
+      skillsCount: number;
+      skillNames: string[];
+    }>;
+    dbSizeBytes: number | null;
+    logSizeBytes: number | null;
+    transcriptFileCount: number;
+    skillsCount: number;
   };
   discord: {
     tokenConfigured: boolean;
     allowedUsers: number;
     allowedGuilds: number;
+    accessMode: "unrestricted" | "users_only" | "guilds_only" | "users_and_guilds";
   };
   model: {
     model: string;
@@ -429,6 +492,7 @@ type StatusSnapshot = {
     oauthProfileCount: number;
     authUsable: boolean;
     tokenExpired: boolean | null;
+    credentialType: "oauth" | "token" | null;
   };
   logs: string[];
 };
@@ -510,6 +574,47 @@ CREATE TABLE user_preferences (
 );
 ```
 
+### pending_command_approvals
+
+当前已存在命令审批的持久化表，用于保存“待用户确认”的高风险命令。
+需要注意的是：这一层目前主要是数据骨架，确认后的自动执行闭环尚未启用。
+
+```sql
+CREATE TABLE pending_command_approvals (
+  session_key TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  command TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+### scheduled_tasks
+
+提醒型定时任务当前已经有独立数据表。
+
+```sql
+CREATE TABLE scheduled_tasks (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  schedule_type TEXT NOT NULL,
+  run_at TEXT,
+  cron_expr TEXT,
+  timezone TEXT NOT NULL,
+  reminder_text TEXT NOT NULL,
+  session_key TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  guild_id TEXT,
+  channel_id TEXT NOT NULL,
+  thread_id TEXT,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_run_at TEXT,
+  next_run_at TEXT NOT NULL,
+  last_error TEXT
+);
+```
+
 ### user_facts
 
 这是可选的 v1.5 能力，第一版不是必须。
@@ -536,7 +641,7 @@ CREATE TABLE user_facts (
 <!-- clawneo:preferences:start -->
 - Preferred language: Simplified Chinese
 - Preferred answer style: concise
-- Preferred package manager: pnpm
+- Preferred package manager: npm
 - Shell: zsh
 - Edit policy: ask before modifying files
 <!-- clawneo:preferences:end -->
@@ -577,10 +682,11 @@ type InboundMessage = {
 ### Discord 第一版策略
 
 - 先支持 DM
-- 可选支持一个配置好的 guild 或 channel allowlist
+- 可选支持配置好的 user / guild allowlist
+- 当前配置层兼容 `allowedChannelIds` 输入，但运行时主语义仍是 guild allowlist
 - 忽略 bot 消息
 - 第一版先忽略纯附件无文本消息
-- 第一版不做 slash commands
+- 已支持 slash commands
 
 ### 当前实现状态
 
@@ -590,8 +696,8 @@ type InboundMessage = {
 - 已完成：按 `DISCORD_ALLOWED_GUILD_IDS` 放行
 - 已完成：在支持的 channel 上发送 typing 状态，并做兼容保护
 - 已完成：回复自动分片，避免 Discord `2000` 字符限制
-- 已完成：`/status`、`/restart`、`/stop` 系统命令硬路由
-- 未完成：slash commands
+- 已完成：文本系统命令 `/help` `/status` `/cancel` `/update` `/restart` `/stop`
+- 已完成：slash commands 注册与 `interactionCreate` 处理
 - 未完成：附件处理
 - 未完成：语音
 
@@ -643,7 +749,7 @@ Prompt 输入必须由多个小块组成，而不是一整坨大字符串。
 1. system base prompt
 2. tool policy prompt
 3. 结构化偏好摘要
-4. 可选的 `USER.md` 摘要
+4. 可选的 `USER.md` 内容
 5. 最近 transcript
 6. 当前用户消息
 
@@ -651,10 +757,10 @@ Prompt 输入必须由多个小块组成，而不是一整坨大字符串。
 
 ```text
 User preferences:
-- Reply in Simplified Chinese.
-- Keep answers concise.
-- Prefer pnpm over npm when suggesting commands.
-- Ask before modifying files.
+- 回复语言: zh-CN
+- 回答风格: concise
+- 包管理器: npm
+- 文件修改策略: ask_before_modify
 ```
 
 这段内容应该由 SQLite 中的偏好动态生成，而不是人工硬编码。
@@ -745,10 +851,21 @@ type AgentRunResult = {
 
 第一版最重要的工具就是受控 shell 执行。
 
-### v1 工具集
+### 当前工具集
 
+内置基础工具：
+
+- `read`
+- `ls`
+- `grep`
 - `bash`
-- `remember_preference`
+
+当前自定义工具：
+
+- `install_skill`
+- `create_scheduled_task`
+- `list_scheduled_tasks`
+- `cancel_scheduled_task`
 
 ### bash 工具输入
 
@@ -780,12 +897,14 @@ type BashToolInput = {
 
 ### 当前实现状态
 
-- 已完成：`bash` 工具接入
+- 已完成：`read` / `ls` / `grep` / `bash` 工具接入
+- 已完成：`install_skill` 与 reminder 相关自定义工具接入
 - 已完成：工具执行开始/结束日志
 - 已完成：极高风险命令硬封禁
 - 已完成：`toolCwd` 可配置，不再强制锁定 `workspaceRoot`
 - 已完成：规则化工具输出摘要，摘要和原始输出分离保存
 - 当前策略：高风险但非硬封禁操作，由 AI 在自然语言层主动确认
+- 当前状态：命令审批存储已具备，但确认后的独立执行入口 `executeApprovedCommand()` 仍处于 disabled
 
 ### 当前摘要策略
 
@@ -856,7 +975,7 @@ ClawNeo 第一版只做：
 例如：
 
 - “以后用中文回答”
-- “默认用 pnpm”
+- “默认用 npm”
 - “不要直接改文件，先问我”
 
 这些语句应直接映射为结构化 key。
@@ -864,7 +983,7 @@ ClawNeo 第一版只做：
 ### 示例映射
 
 - `以后用中文回答` -> `response_language = zh-CN`
-- `默认用 pnpm` -> `package_manager = pnpm`
+- `默认用 npm` -> `package_manager = npm`
 - `不要直接改文件，先问我` -> `edit_policy = ask_before_modify`
 
 ### 为什么第一版只做显式捕获
@@ -898,19 +1017,16 @@ Prompt 构建时，偏好解析优先级建议如下：
 {
   "discord": {
     "token": "...",
-    "allowedUserIds": ["1234567890"]
-  },
-  "openai": {
-    "authMode": "oauth",
-    "profile": "default"
+    "allowedUserIds": ["1234567890"],
+    "allowedGuildIds": ["0987654321"]
   },
   "agent": {
     "model": "gpt-5-codex",
-    "workspaceRoot": "~/.clawneo/workspace"
+    "workspaceRoot": "~/.clawneo/workspace",
+    "toolCwd": "~/projects"
   },
   "runtime": {
     "stateDir": "~/.clawneo",
-    "configPath": "~/.clawneo/clawneo.json",
     "dbPath": "~/.clawneo/clawneo.db",
     "transcriptDir": "~/.clawneo/transcripts",
     "authStorePath": "~/.clawneo/auth-profiles.json"
@@ -996,12 +1112,14 @@ Prompt 构建时，偏好解析优先级建议如下：
 - [x] UI 前后端拆分到独立目录
 - [x] UI 自动打开浏览器
 - [x] 配置退出时按需自动重启服务
-- [x] Discord `/status` `/restart` `/stop`
+- [x] Discord `/help` `/status` `/cancel` `/update` `/restart` `/stop`
+- [x] Discord slash commands
 
 ### Phase 6
 
-- [ ] 取消 run
+- [x] 当前会话 run 取消 `/cancel`
 - [~] 更好的错误呈现
+- [~] 命令审批闭环（存储已完成，确认后执行未完成）
 - [ ] 可选的轻量 fact 抽取
 
 ## 最终建议
