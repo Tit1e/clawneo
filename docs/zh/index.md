@@ -32,10 +32,10 @@ ClawNeo 是一个围绕简单工作流构建的个人 AI 助手 CLI：连接到 
 - [快速开始](/zh/guide/quick-start)
 - [配置说明](/zh/guide/configuration)
 
-## 参考文档
+## 继续阅读指南
 
-- [命令参考](/zh/reference/commands)
-- [工具参考](/zh/reference/tools)
+- [命令使用](/zh/guide/commands)
+- [工具使用](/zh/guide/tools)
 
 ## 为什么选择 ClawNeo
 

@@ -1,4 +1,4 @@
-# Tools Reference
+# Tools
 
 ClawNeo can use a small set of built-in tools to work with local files, code, shell commands, skills, and reminder tasks.
 
@@ -159,6 +159,6 @@ They are not designed to be:
 
 ## Related pages
 
-- [Command Reference](/reference/commands)
+- [Commands](/guide/commands)
 - [Quick Start](/guide/quick-start)
 - [Architecture Overview](/guide/configuration#architecture-overview)

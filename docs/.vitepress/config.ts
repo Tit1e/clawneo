@@ -1,14 +1,8 @@
 import { defineConfig } from 'vitepress'
 
-const enNav = [
-  { text: 'Guide', link: '/guide/installation' },
-  { text: 'Reference', link: '/reference/commands' },
-]
+const enNav = [{ text: 'Guide', link: '/guide/installation' }]
 
-const zhNav = [
-  { text: '指南', link: '/zh/guide/installation' },
-  { text: '参考', link: '/zh/reference/commands' },
-]
+const zhNav = [{ text: '指南', link: '/zh/guide/installation' }]
 
 const enSidebar = {
   '/guide/': [
@@ -18,15 +12,8 @@ const enSidebar = {
         { text: 'Installation', link: '/guide/installation' },
         { text: 'Configuration', link: '/guide/configuration' },
         { text: 'Quick Start', link: '/guide/quick-start' },
-      ],
-    },
-  ],
-  '/reference/': [
-    {
-      text: 'Reference',
-      items: [
-        { text: 'Commands', link: '/reference/commands' },
-        { text: 'Tools', link: '/reference/tools' },
+        { text: 'Commands', link: '/guide/commands' },
+        { text: 'Tools', link: '/guide/tools' },
       ],
     },
   ],
@@ -40,15 +27,8 @@ const zhSidebar = {
         { text: '安装说明', link: '/zh/guide/installation' },
         { text: '配置说明', link: '/zh/guide/configuration' },
         { text: '快速开始', link: '/zh/guide/quick-start' },
-      ],
-    },
-  ],
-  '/zh/reference/': [
-    {
-      text: '参考',
-      items: [
-        { text: '命令参考', link: '/zh/reference/commands' },
-        { text: '工具参考', link: '/zh/reference/tools' },
+        { text: '命令使用', link: '/zh/guide/commands' },
+        { text: '工具使用', link: '/zh/guide/tools' },
       ],
     },
   ],

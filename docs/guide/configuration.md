@@ -239,4 +239,4 @@ clawneo start
 ## Next step
 
 - Continue to [Quick Start](/guide/quick-start)
-- See [Command Reference](/reference/commands)
+- Continue to [Commands](/guide/commands)

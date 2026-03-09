@@ -1,34 +1,30 @@
 # Quick Start
 
-## Install
+This page helps you get ClawNeo running as quickly as possible.
+
+## 1. Install
 
 ```bash
 npm install -g clawneo
 ```
 
-## Upgrade
+## 2. Configure
+
+Run the interactive setup when needed:
 
 ```bash
-npm install -g clawneo@latest
-clawneo restart
-```
-
-## Basic CLI commands
-
-```bash
-clawneo -h
-clawneo --help
-clawneo -v
-clawneo --version
 clawneo config
-clawneo start
-clawneo stop
-clawneo restart
-clawneo status
-clawneo ui
 ```
 
-## Local status UI
+If you want the full configuration guide, see [Configuration](/guide/configuration).
+
+## 3. Start the service
+
+```bash
+clawneo start
+```
+
+## 4. Open the local status UI
 
 After the service starts, open:
 
@@ -36,9 +32,11 @@ After the service starts, open:
 http://127.0.0.1:3210
 ```
 
-## Discord system commands
+## 5. Use ClawNeo from Discord
 
 ClawNeo supports both plain-text `/xxx` messages and native Discord slash commands.
+
+Common examples:
 
 ```text
 /help
@@ -49,19 +47,17 @@ ClawNeo supports both plain-text `/xxx` messages and native Discord slash comman
 /stop
 ```
 
-Notes:
-
-- `/cancel` aborts the current running task in the current Discord session
-- `/update` updates ClawNeo in the background and restarts the service
-- `/stop` takes the bot offline until you start it again
-
-## Reminder tasks
+## 6. Try a few natural-language tasks
 
 Examples:
 
 ```text
 20 minutes later remind me to check the logs
-every day at 8 remind me to clock in
 what reminders do I have
-cancel the latest reminder
 ```
+
+## Where to go next
+
+- For the full command list, see [Commands](/guide/commands)
+- For built-in tool details, see [Tools](/guide/tools)
+- For configuration details, see [Configuration](/guide/configuration)

@@ -1,4 +1,4 @@
-# 工具参考
+# 工具使用
 
 ClawNeo 提供一组精简的内置工具，用于处理本地文件、代码、shell 命令、技能以及提醒任务。
 
@@ -159,6 +159,6 @@ ClawNeo 工具的设计目标是：
 
 ## 相关页面
 
-- [命令参考](/zh/reference/commands)
+- [命令使用](/zh/guide/commands)
 - [快速开始](/zh/guide/quick-start)
 - [架构概览](/zh/guide/configuration#architecture-overview)
