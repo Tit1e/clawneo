@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { Message } from "discord.js";
 import { collectStatusSnapshot, renderStatusPlainText } from "../cli/status.js";
-import { runDetachedServiceCommand } from "../cli/service-manager.js";
+import { runDetachedServiceCommand, runDetachedUpdateCommand } from "../cli/service-manager.js";
 import { resolveSessionKey } from "../core/session-key.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
 import { sendChunkedDiscordReply } from "./reply.js";
@@ -74,12 +74,14 @@ function renderSystemCommandHelp(): string {
     "- /help：查看这份命令说明",
     "- /status：查看当前服务状态",
     "- /cancel：取消当前会话正在运行的任务",
+    "- /update：升级到最新版本并重启服务",
     "- /restart：重启服务",
     "- /stop：停止服务",
     "",
     "说明：",
     "- 这些命令不经过 AI 模型",
     "- /cancel 只会取消当前 Discord 会话里的任务，不会停止整个服务",
+    "- /update 会在后台执行 npm 全局升级，然后自动重启服务",
     "- /stop 后 bot 会离线",
     "- 停止后需要通过 CLI 执行 clawneo start 才能重新启动",
   ].join("\n");
@@ -156,6 +158,15 @@ export function createDiscordMessageHandler({ config, onMessage, onCancel }: Mes
       );
       await replyToDiscordMessage(message, "ClawNeo 正在重启。");
       runDetachedServiceCommand("restart");
+      return;
+    }
+
+    if (text === "/update") {
+      console.log(
+        `[discord] system command /update from user=${message.author.id} channel=${message.channelId}`,
+      );
+      await replyToDiscordMessage(message, "ClawNeo 正在后台升级到最新版本，完成后会自动重启。");
+      runDetachedUpdateCommand();
       return;
     }
 

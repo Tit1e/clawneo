@@ -90,6 +90,7 @@ http://127.0.0.1:3210
 /help
 /status
 /cancel
+/update
 /restart
 /stop
 ```
@@ -97,6 +98,7 @@ http://127.0.0.1:3210
 说明：
 - 这些命令不经过模型
 - `/cancel` 会取消当前 Discord 会话里正在运行的任务
+- `/update` 会在后台执行 `npm install -g clawneo@latest`，完成后自动重启服务
 - `/stop` 后 bot 会离线
 - 停止后需要通过 CLI 再次执行 `clawneo start`
 

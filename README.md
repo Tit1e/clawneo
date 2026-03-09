@@ -90,6 +90,7 @@ Supported commands:
 /help
 /status
 /cancel
+/update
 /restart
 /stop
 ```
@@ -97,6 +98,7 @@ Supported commands:
 Notes:
 - these commands bypass the model
 - `/cancel` aborts the current running task for the current Discord session
+- `/update` runs `npm install -g clawneo@latest` in the background and then restarts the service
 - `/stop` will take the bot offline
 - after stopping, start it again with `clawneo start`
 

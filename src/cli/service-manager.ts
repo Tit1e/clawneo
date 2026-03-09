@@ -73,6 +73,16 @@ export function restartService(): void {
   startService();
 }
 
+function resolveShellCommand(): string {
+  const candidates = [process.env.SHELL, "/bin/zsh", "/bin/bash", "/bin/sh"].filter(Boolean) as string[];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return "sh";
+}
+
 export function runDetachedServiceCommand(command: "stop" | "restart"): void {
   const child = spawn(process.execPath, [...resolveCliEntrypoint(), command], {
     cwd: process.cwd(),
@@ -80,6 +90,21 @@ export function runDetachedServiceCommand(command: "stop" | "restart"): void {
     stdio: "ignore",
     env: process.env,
   });
+  child.unref();
+}
+
+export function runDetachedUpdateCommand(): void {
+  const shell = resolveShellCommand();
+  const child = spawn(
+    shell,
+    ["-lc", "npm install -g clawneo@latest && clawneo restart"],
+    {
+      cwd: process.cwd(),
+      detached: true,
+      stdio: "ignore",
+      env: process.env,
+    },
+  );
   child.unref();
 }
 
