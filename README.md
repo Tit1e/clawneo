@@ -1,4 +1,4 @@
-![ClawNeo](./docs/assets/clawneo-hero.jpg)
+![ClawNeo](./docs/public/assets/clawneo-hero.jpg)
 
 # ClawNeo
 
