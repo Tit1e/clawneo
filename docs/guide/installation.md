@@ -147,5 +147,5 @@ If needed, set an explicit shell path before starting ClawNeo.
 
 ## Next step
 
-- Continue to [Configuration](/guide/configuration.html)
-- Or jump to [Quick Start](/guide/quick-start.html)
+- Continue to [Configuration](/guide/configuration)
+- Or jump to [Quick Start](/guide/quick-start)

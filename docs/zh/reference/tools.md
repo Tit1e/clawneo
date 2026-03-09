@@ -159,6 +159,6 @@ ClawNeo 工具的设计目标是：
 
 ## 相关页面
 
-- [命令参考](/zh/reference/commands.html)
-- [快速开始](/zh/guide/quick-start.html)
-- [架构概览](/zh/architecture.html)
+- [命令参考](/zh/reference/commands)
+- [快速开始](/zh/guide/quick-start)
+- [架构概览](/zh/architecture)

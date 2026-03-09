@@ -187,5 +187,5 @@ clawneo start
 
 ## Next step
 
-- Continue to [Quick Start](/guide/quick-start.html)
-- See [Command Reference](/reference/commands.html)
+- Continue to [Quick Start](/guide/quick-start)
+- See [Command Reference](/reference/commands)

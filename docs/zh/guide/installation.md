@@ -147,5 +147,5 @@ ClawNeo 更偏好使用 Unix shell 执行工具。Shell 的解析顺序为：
 
 ## 下一步
 
-- 继续阅读 [配置说明](/zh/guide/configuration.html)
-- 或跳转到 [快速开始](/zh/guide/quick-start.html)
+- 继续阅读 [配置说明](/zh/guide/configuration)
+- 或跳转到 [快速开始](/zh/guide/quick-start)

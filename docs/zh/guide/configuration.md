@@ -187,5 +187,5 @@ clawneo start
 
 ## 下一步
 
-- 继续阅读 [快速开始](/zh/guide/quick-start.html)
-- 查看 [命令参考](/zh/reference/commands.html)
+- 继续阅读 [快速开始](/zh/guide/quick-start)
+- 查看 [命令参考](/zh/reference/commands)

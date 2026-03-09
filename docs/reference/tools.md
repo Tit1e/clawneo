@@ -159,6 +159,6 @@ They are not designed to be:
 
 ## Related pages
 
-- [Command Reference](/reference/commands.html)
-- [Quick Start](/guide/quick-start.html)
-- [Architecture Overview](/architecture.html)
+- [Command Reference](/reference/commands)
+- [Quick Start](/guide/quick-start)
+- [Architecture Overview](/architecture)

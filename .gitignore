@@ -4,6 +4,10 @@ node_modules/
 dist/
 *.tgz
 
+docs/.vitepress/cache/
+docs/.vitepress/.temp/
 docs/.vuepress/.temp/
+docs/.vitepress/dist/
 docs/.vuepress/dist/
+docs/.vitepress/.cache/
 docs/.vuepress/.cache/

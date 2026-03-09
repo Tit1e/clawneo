@@ -44,8 +44,9 @@
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",
-    "docs:dev": "vuepress dev docs --host 0.0.0.0",
-    "docs:build": "vuepress build docs"
+    "docs:dev": "vitepress dev docs --host 0.0.0.0",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs --host 0.0.0.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
@@ -56,11 +57,9 @@
   },
   "devDependencies": {
     "@types/node": "^24.6.0",
-    "@vuepress/bundler-vite": "^2.0.0-rc.18",
-    "@vuepress/theme-default": "^2.0.0-rc.18",
     "sass-embedded": "^1.97.3",
     "tsx": "^4.20.5",
     "typescript": "^5.9.3",
-    "vuepress": "^2.0.0-rc.18"
+    "vitepress": "^1.6.3"
   }
 }

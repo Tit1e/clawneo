@@ -1,14 +1,14 @@
 ---
-home: true
+layout: home
 heroImage: /assets/clawneo-hero.jpg
 heroText: ClawNeo
 tagline: Personal AI assistant CLI for Discord-first workflows
 actions:
   - text: Get Started
-    link: /guide/installation.html
+    link: /guide/installation
     type: primary
   - text: Quick Start
-    link: /guide/quick-start.html
+    link: /guide/quick-start
     type: secondary
   - text: GitHub
     link: https://github.com/Tit1e/clawneo
@@ -22,22 +22,21 @@ features:
     details: Keep stable preferences and profile data across sessions through structured storage and a human-editable USER.md file.
   - title: Lightweight operations and reminders
     details: Manage the local service, open a status UI, and create reminder-style scheduled tasks directly from Discord.
-footer: MIT Licensed | Copyright © 2026 Tit1e
 ---
 
 ClawNeo is a personal AI assistant CLI built around a simple workflow: connect it to Discord, run it locally, and use practical tools for everyday work.
 
 ## Start here
 
-- [Installation](/guide/installation.html)
-- [Quick Start](/guide/quick-start.html)
-- [Configuration](/guide/configuration.html)
+- [Installation](/guide/installation)
+- [Quick Start](/guide/quick-start)
+- [Configuration](/guide/configuration)
 
 ## Reference
 
-- [Command Reference](/reference/commands.html)
-- [Tools Reference](/reference/tools.html)
-- [Architecture](/architecture.html)
+- [Command Reference](/reference/commands)
+- [Tools Reference](/reference/tools)
+- [Architecture](/architecture)
 
 ## Why ClawNeo
 

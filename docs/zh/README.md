@@ -1,14 +1,14 @@
 ---
-home: true
+layout: home
 heroImage: /assets/clawneo-hero.jpg
 heroText: ClawNeo
 tagline: 面向 Discord 优先工作流的个人 AI 助手 CLI
 actions:
   - text: 开始使用
-    link: /zh/guide/installation.html
+    link: /zh/guide/installation
     type: primary
   - text: 快速开始
-    link: /zh/guide/quick-start.html
+    link: /zh/guide/quick-start
     type: secondary
   - text: GitHub
     link: https://github.com/Tit1e/clawneo
@@ -22,22 +22,21 @@ features:
     details: 通过结构化存储与可人工编辑的 USER.md 文件，在多次会话之间保留稳定偏好与用户资料。
   - title: 轻量运维与提醒能力
     details: 可直接从 Discord 管理本地服务、打开状态 UI，并创建提醒式定时任务。
-footer: MIT Licensed | Copyright © 2026 Tit1e
 ---
 
 ClawNeo 是一个围绕简单工作流构建的个人 AI 助手 CLI：连接到 Discord，在本地运行，并通过实用工具处理日常工作。
 
 ## 从这里开始
 
-- [安装说明](/zh/guide/installation.html)
-- [快速开始](/zh/guide/quick-start.html)
-- [配置说明](/zh/guide/configuration.html)
+- [安装说明](/zh/guide/installation)
+- [快速开始](/zh/guide/quick-start)
+- [配置说明](/zh/guide/configuration)
 
 ## 参考文档
 
-- [命令参考](/zh/reference/commands.html)
-- [工具参考](/zh/reference/tools.html)
-- [架构概览](/zh/architecture.html)
+- [命令参考](/zh/reference/commands)
+- [工具参考](/zh/reference/tools)
+- [架构概览](/zh/architecture)
 
 ## 为什么选择 ClawNeo
 
