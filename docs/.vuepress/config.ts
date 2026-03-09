@@ -8,7 +8,7 @@ export default defineUserConfig({
   description: 'Personal AI assistant CLI with a Discord bridge',
   base: '/clawneo/',
   head: [
-    ['link', { rel: 'icon', href: '/assets/clawneo-hero.jpg' }],
+    ['link', { rel: 'icon', href: '/clawneo/assets/clawneo-hero.jpg' }],
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
   ],
   theme: defaultTheme({
