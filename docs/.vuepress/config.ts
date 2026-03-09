@@ -5,7 +5,9 @@ import { defineUserConfig } from 'vuepress'
 export default defineUserConfig({
   base: '/clawneo/',
   head: [
-    ['link', { rel: 'icon', href: '/clawneo/assets/clawneo-hero.jpg' }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: '/clawneo/assets/favicon.ico' }],
+    ['link', { rel: 'alternate icon', type: 'image/png', href: '/clawneo/assets/favicon-32x32.png' }],
+    ['link', { rel: 'apple-touch-icon', href: '/clawneo/assets/apple-touch-icon.png' }],
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
   ],
   locales: {
@@ -21,7 +23,7 @@ export default defineUserConfig({
     },
   },
   theme: defaultTheme({
-    logo: '/assets/clawneo-hero.jpg',
+    logo: '/assets/clawneo-icon-512.png',
     repo: 'Tit1e/clawneo',
     docsDir: 'docs',
     locales: {
