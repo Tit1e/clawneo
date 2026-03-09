@@ -161,4 +161,4 @@ They are not designed to be:
 
 - [Command Reference](/reference/commands)
 - [Quick Start](/guide/quick-start)
-- [Architecture Overview](/architecture)
+- [Architecture Overview](/guide/configuration#architecture-overview)

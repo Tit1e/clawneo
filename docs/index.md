@@ -36,7 +36,6 @@ ClawNeo is a personal AI assistant CLI built around a simple workflow: connect i
 
 - [Command Reference](/reference/commands)
 - [Tools Reference](/reference/tools)
-- [Architecture](/architecture)
 
 ## Why ClawNeo
 

@@ -3,13 +3,11 @@ import { defineConfig } from 'vitepress'
 const enNav = [
   { text: 'Guide', link: '/guide/installation' },
   { text: 'Reference', link: '/reference/commands' },
-  { text: 'Architecture', link: '/architecture' },
 ]
 
 const zhNav = [
   { text: '指南', link: '/zh/guide/installation' },
   { text: '参考', link: '/zh/reference/commands' },
-  { text: '架构', link: '/zh/architecture' },
 ]
 
 const enSidebar = {

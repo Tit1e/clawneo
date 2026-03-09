@@ -36,7 +36,6 @@ ClawNeo 是一个围绕简单工作流构建的个人 AI 助手 CLI：连接到 
 
 - [命令参考](/zh/reference/commands)
 - [工具参考](/zh/reference/tools)
-- [架构概览](/zh/architecture)
 
 ## 为什么选择 ClawNeo
 
