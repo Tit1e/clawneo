@@ -1,10 +1,9 @@
 import crypto from "node:crypto";
 import type { Message } from "discord.js";
-import { collectStatusSnapshot, renderStatusPlainText } from "../cli/status.js";
-import { runDetachedServiceCommand, runDetachedUpdateCommand } from "../cli/service-manager.js";
 import { resolveSessionKey } from "../core/session-key.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
 import { sendChunkedDiscordReply } from "./reply.js";
+import { handleSystemCommand, renderSystemCommandHelp, replyToDiscordMessage } from "./system-commands.js";
 
 type AllowDecision = {
   allowed: boolean;
@@ -58,35 +57,6 @@ function canSendMessage(channel: Message["channel"]): channel is Message["channe
   return typeof (channel as { send?: unknown }).send === "function";
 }
 
-async function replyToDiscordMessage(message: Message, content: string): Promise<void> {
-  if (canSendMessage(message.channel)) {
-    const channel = message.channel;
-    await sendChunkedDiscordReply(content, (chunk) => channel.send(chunk));
-    return;
-  }
-  await sendChunkedDiscordReply(content, (chunk) => message.reply(chunk));
-}
-
-function renderSystemCommandHelp(): string {
-  return [
-    "ClawNeo 系统命令：",
-    "",
-    "- /help：查看这份命令说明",
-    "- /status：查看当前服务状态",
-    "- /cancel：取消当前会话正在运行的任务",
-    "- /update：升级到最新版本并重启服务",
-    "- /restart：重启服务",
-    "- /stop：停止服务",
-    "",
-    "说明：",
-    "- 这些命令不经过 AI 模型",
-    "- /cancel 只会取消当前 Discord 会话里的任务，不会停止整个服务",
-    "- /update 会在后台执行 npm 全局升级，然后自动重启服务",
-    "- /stop 后 bot 会离线",
-    "- 停止后需要通过 CLI 执行 clawneo start 才能重新启动",
-  ].join("\n");
-}
-
 export function createDiscordMessageHandler({ config, onMessage, onCancel }: MessageHandlerParams) {
   return async function handleDiscordMessage(message: Message): Promise<void> {
     const decision = isAllowedMessage(message, config);
@@ -123,63 +93,24 @@ export function createDiscordMessageHandler({ config, onMessage, onCancel }: Mes
 
     const sessionKey = resolveSessionKey(baseMessage);
 
-    if (text === "/status") {
-      console.log(
-        `[discord] system command /status from user=${message.author.id} channel=${message.channelId}`,
-      );
-      const statusText = renderStatusPlainText(collectStatusSnapshot());
-      await replyToDiscordMessage(message, statusText);
-      return;
-    }
-
-    if (text === "/help") {
-      console.log(
-        `[discord] system command /help from user=${message.author.id} channel=${message.channelId}`,
-      );
-      await replyToDiscordMessage(message, renderSystemCommandHelp());
-      return;
-    }
-
-    if (text === "/cancel") {
-      console.log(
-        `[discord] system command /cancel from user=${message.author.id} channel=${message.channelId} session=${sessionKey}`,
-      );
-      const cancelled = onCancel(sessionKey);
-      await replyToDiscordMessage(
-        message,
-        cancelled ? "已发送取消请求。" : "当前会话没有正在运行的任务。",
-      );
-      return;
-    }
-
-    if (text === "/restart") {
-      console.log(
-        `[discord] system command /restart from user=${message.author.id} channel=${message.channelId}`,
-      );
-      await replyToDiscordMessage(message, "ClawNeo 正在重启。");
-      runDetachedServiceCommand("restart");
-      return;
-    }
-
-    if (text === "/update") {
-      console.log(
-        `[discord] system command /update from user=${message.author.id} channel=${message.channelId}`,
-      );
-      await replyToDiscordMessage(message, "ClawNeo 正在后台升级到最新版本，完成后会自动重启。");
-      runDetachedUpdateCommand();
-      return;
-    }
-
-    if (text === "/stop") {
-      console.log(
-        `[discord] system command /stop from user=${message.author.id} channel=${message.channelId}`,
-      );
-      await replyToDiscordMessage(message, "ClawNeo 正在停止，稍后将离线。");
-      runDetachedServiceCommand("stop");
-      return;
-    }
-
     if (text.startsWith("/")) {
+      const command = text.slice(1).trim().toLowerCase();
+      const handled = await handleSystemCommand({
+        config,
+        command,
+        userId: message.author.id,
+        guildId: message.guildId || undefined,
+        channelId: message.channelId,
+        threadId: message.channel.isThread() ? message.channel.id : undefined,
+        reply: async (content) => replyToDiscordMessage(message, content),
+        onCancel,
+      });
+      if (handled) {
+        console.log(
+          `[discord] system command /${command} from user=${message.author.id} channel=${message.channelId}${command === "cancel" ? ` session=${sessionKey}` : ""}`,
+        );
+        return;
+      }
       console.log(
         `[discord] unknown system command ${JSON.stringify(text)} from user=${message.author.id} channel=${message.channelId}`,
       );

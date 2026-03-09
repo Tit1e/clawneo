@@ -41,6 +41,12 @@ export function buildPromptContext({ config, preferences, transcript }: PromptCo
         "- After the user clearly confirms, call a tool with the exact command you intend to run.",
         "- Do not claim an operation was executed unless a tool actually ran successfully.",
       ].join("\n"),
+      [
+        "ClawNeo maintenance rule:",
+        "- If the user wants to update or upgrade ClawNeo itself, do not run npm install -g clawneo, clawneo restart, or any self-update shell command through tools.",
+        "- Tell the user to use the Discord system command /update instead.",
+        "- Treat ClawNeo self-update as a system command, not a normal tool task.",
+      ].join("\n"),
       preferenceLines.length > 0 ? `User preferences:\n${preferenceLines.join("\n")}` : "",
       userProfile ? `USER.md:\n${userProfile}` : "",
     ]

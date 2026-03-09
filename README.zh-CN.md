@@ -84,6 +84,8 @@ http://127.0.0.1:3210
 
 ## Discord 系统命令
 
+ClawNeo 现在同时支持普通文本 `/xxx` 命令和 Discord 原生 slash commands。你在 Discord 输入 `/` 时，应该能直接看到这些命令及其内置说明。
+
 当前支持：
 
 ```text

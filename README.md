@@ -84,6 +84,8 @@ http://127.0.0.1:3210
 
 ## Discord System Commands
 
+ClawNeo supports both plain text `/xxx` messages and native Discord slash commands. When you type `/` in Discord, these commands should appear with built-in descriptions.
+
 Supported commands:
 
 ```text

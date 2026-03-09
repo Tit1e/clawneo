@@ -1,10 +1,13 @@
 import {
+  type ChatInputCommandInteraction,
   Client,
   GatewayIntentBits,
+  Interaction,
   Partials,
   type Message,
 } from "discord.js";
 import { createDiscordMessageHandler } from "./message-handler.js";
+import { handleSystemCommand, registerSlashCommands, replyToInteraction } from "./system-commands.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
 
 type DiscordClientParams = {
@@ -32,6 +35,10 @@ export async function startDiscordClient({
 
   client.once("clientReady", () => {
     console.log(`ClawNeo connected to Discord as ${client.user?.tag || "unknown-user"}.`);
+    void registerSlashCommands(client, config).catch((error) => {
+      console.error("[discord] failed to register slash commands");
+      console.error(error);
+    });
   });
 
   client.on("messageCreate", async (message: Message) => {
@@ -39,6 +46,35 @@ export async function startDiscordClient({
       await handleMessage(message);
     } catch (error: unknown) {
       console.error("Failed to process Discord message.");
+      console.error(error);
+    }
+  });
+
+  client.on("interactionCreate", async (interaction: Interaction) => {
+    try {
+      if (!interaction.isChatInputCommand()) {
+        return;
+      }
+
+      const command = interaction.commandName.trim().toLowerCase();
+      const handled = await handleSystemCommand({
+        config,
+        command,
+        userId: interaction.user.id,
+        guildId: interaction.guildId || undefined,
+        channelId: interaction.channelId,
+        threadId: interaction.channel?.isThread?.() ? interaction.channel.id : undefined,
+        reply: async (content) => replyToInteraction(interaction as ChatInputCommandInteraction, content),
+        onCancel,
+      });
+
+      if (handled) {
+        console.log(
+          `[discord] slash command /${command} from user=${interaction.user.id} channel=${interaction.channelId}`,
+        );
+      }
+    } catch (error: unknown) {
+      console.error("Failed to process Discord interaction.");
       console.error(error);
     }
   });
