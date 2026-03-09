@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
 import { generateModelReply } from "../agent/model-client.js";
 import {
   detectExplicitPreferenceUpdates,
@@ -7,6 +6,7 @@ import {
 } from "../preferences/explicit-updates.js";
 import { syncUserProfileFile } from "../preferences/user-profile-sync.js";
 import { createScheduledTaskStore } from "../scheduled-tasks/store.js";
+import type { DatabaseHandle } from "../store/db.js";
 import { buildPromptContext } from "./prompt-builder.js";
 import { createSessionStore } from "./session-store.js";
 import type { AppConfig, InboundMessage } from "./types.js";
@@ -24,7 +24,7 @@ type TranscriptStore = {
 
 type ConversationServiceParams = {
   config: AppConfig;
-  db: DatabaseSync;
+  db: DatabaseHandle;
   transcriptStore: TranscriptStore;
 };
 

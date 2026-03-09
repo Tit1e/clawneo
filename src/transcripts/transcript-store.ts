@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { DatabaseSync } from "node:sqlite";
 import type { StoredMessage } from "../core/types.js";
+import type { DatabaseHandle } from "../store/db.js";
 
 function sanitizeSessionKey(sessionKey: string): string {
   return sessionKey.replace(/[^a-zA-Z0-9:_-]/g, "_").replace(/[:/]/g, "__");
@@ -12,7 +12,7 @@ function nowIso(): string {
 }
 
 type TranscriptStoreParams = {
-  db: DatabaseSync;
+  db: DatabaseHandle;
   transcriptDir: string;
 };
 

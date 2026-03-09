@@ -1,5 +1,5 @@
-import type { DatabaseSync } from "node:sqlite";
 import type { CreateScheduledTaskInput, ScheduledTask, ScheduledTaskStatus } from "./types.js";
+import type { DatabaseHandle } from "../store/db.js";
 
 type ScheduledTaskRow = {
   id: string;
@@ -49,7 +49,7 @@ function mapRow(row: ScheduledTaskRow): ScheduledTask {
   };
 }
 
-export function createScheduledTaskStore(db: DatabaseSync) {
+export function createScheduledTaskStore(db: DatabaseHandle) {
   const insertTaskStatement = db.prepare(`
     INSERT INTO scheduled_tasks (
       id, kind, schedule_type, run_at, cron_expr, timezone, reminder_text,

@@ -1,4 +1,3 @@
-import type { DatabaseSync } from "node:sqlite";
 import type {
   InboundMessage,
   PendingCommandApproval,
@@ -6,6 +5,7 @@ import type {
   UserPreferences,
 } from "./types.js";
 import type { PreferenceUpdate } from "../preferences/explicit-updates.js";
+import type { DatabaseHandle } from "../store/db.js";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -32,7 +32,7 @@ type PendingApprovalRow = {
   created_at: string;
 };
 
-export function createSessionStore(db: DatabaseSync) {
+export function createSessionStore(db: DatabaseHandle) {
   const ensureSessionStatement = db.prepare(`
     INSERT INTO sessions (
       session_key,
