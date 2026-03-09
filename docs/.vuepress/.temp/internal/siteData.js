@@ -1,1 +1,0 @@
-export const siteData = JSON.parse("{\"base\":\"/clawneo/\",\"lang\":\"en-US\",\"title\":\"ClawNeo\",\"description\":\"Personal AI assistant CLI with a Discord bridge\",\"head\":[[\"link\",{\"rel\":\"icon\",\"href\":\"/assets/clawneo-hero.jpg\"}],[\"meta\",{\"name\":\"theme-color\",\"content\":\"#3eaf7c\"}]],\"locales\":{}}")

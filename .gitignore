@@ -3,3 +3,7 @@ node_modules/
 .env
 dist/
 *.tgz
+
+docs/.vuepress/.temp/
+docs/.vuepress/dist/
+docs/.vuepress/.cache/

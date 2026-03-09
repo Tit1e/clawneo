@@ -16,28 +16,34 @@ export default defineUserConfig({
     repo: 'Tit1e/clawneo',
     docsDir: 'docs',
     navbar: [
-      { text: 'Guide', link: '/guide/quick-start.html' },
+      { text: 'Guide', link: '/guide/installation.html' },
       { text: 'Reference', link: '/reference/commands.html' },
       { text: 'Architecture', link: '/architecture.html' },
-      { text: 'GitHub', link: 'https://github.com/Tit1e/clawneo' },
     ],
     sidebar: {
       '/guide/': [
         {
           text: 'Guide',
-          children: ['/guide/quick-start.md'],
+          children: [
+            '/guide/installation.md',
+            '/guide/configuration.md',
+            '/guide/quick-start.md',
+          ],
         },
       ],
       '/reference/': [
         {
           text: 'Reference',
-          children: ['/reference/commands.md'],
+          children: ['/reference/commands.md', '/reference/tools.md'],
         },
       ],
       '/': [
         '/',
+        '/guide/installation.md',
+        '/guide/configuration.md',
         '/guide/quick-start.md',
         '/reference/commands.md',
+        '/reference/tools.md',
         '/architecture.md',
       ],
     },
