@@ -1,5 +1,7 @@
 const DEFAULT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
+const WEEKDAY_LABELS_ZH = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
 type CronParts = {
   minute: number;
   hour: number;
@@ -69,6 +71,10 @@ function roundUpToNextMinute(baseDate: Date): Date {
   return rounded;
 }
 
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
 function parseCronExpr(cronExpr: string): CronParts {
   const fields = cronExpr.trim().split(/\s+/);
   if (fields.length !== 5) {
@@ -99,6 +105,16 @@ function parseCronExpr(cronExpr: string): CronParts {
   }
 
   return { minute, hour, dayOfWeek };
+}
+
+function isSameZonedDate(left: Date, right: Date, timezone: string): boolean {
+  const leftParts = getZonedParts(left, timezone);
+  const rightParts = getZonedParts(right, timezone);
+  return (
+    leftParts.year === rightParts.year
+    && leftParts.month === rightParts.month
+    && leftParts.day === rightParts.day
+  );
 }
 
 export function resolveTaskTimezone(timezone?: string): string {
@@ -142,4 +158,36 @@ export function resolveNextRunAtForCron(cronExpr: string, timezone: string, from
   }
 
   throw new Error(`Unable to resolve the next run time for cron expression: ${cronExpr}`);
+}
+
+export function formatRunAtForDisplay(runAt: string, timezone: string, now = new Date()): string {
+  const target = new Date(runAt);
+  if (Number.isNaN(target.getTime())) {
+    throw new Error(`Invalid runAt timestamp: ${runAt}`);
+  }
+
+  const targetParts = getZonedParts(target, timezone);
+  const timeLabel = `${pad2(targetParts.hour)}:${pad2(targetParts.minute)}`;
+
+  if (isSameZonedDate(target, now, timezone)) {
+    return `今天 ${timeLabel}`;
+  }
+
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  if (isSameZonedDate(target, tomorrow, timezone)) {
+    return `明天 ${timeLabel}`;
+  }
+
+  return `${targetParts.year}-${pad2(targetParts.month)}-${pad2(targetParts.day)} ${timeLabel}`;
+}
+
+export function formatCronExprForDisplay(cronExpr: string): string {
+  const cron = parseCronExpr(cronExpr);
+  const timeLabel = `${pad2(cron.hour)}:${pad2(cron.minute)}`;
+
+  if (cron.dayOfWeek === null) {
+    return `每天 ${timeLabel}`;
+  }
+
+  return `每${WEEKDAY_LABELS_ZH[cron.dayOfWeek]} ${timeLabel}`;
 }

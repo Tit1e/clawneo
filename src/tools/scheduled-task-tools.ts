@@ -2,7 +2,13 @@ import crypto from "node:crypto";
 import { Type } from "@sinclair/typebox";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import type { ToolRequestContext } from "../core/types.js";
-import { resolveNextRunAtForCron, resolveTaskTimezone, validateRunAt } from "../scheduled-tasks/time.js";
+import {
+  formatCronExprForDisplay,
+  formatRunAtForDisplay,
+  resolveNextRunAtForCron,
+  resolveTaskTimezone,
+  validateRunAt,
+} from "../scheduled-tasks/time.js";
 import type { ScheduledTaskStore } from "../scheduled-tasks/store.js";
 import type { ScheduledTaskStatus } from "../scheduled-tasks/types.js";
 
@@ -56,6 +62,36 @@ function formatTaskSummary(task: {
   }
 
   return lines.join("\n");
+}
+
+function formatCreatedTaskMessage(task: {
+  kind: "once" | "recurring";
+  reminderText: string;
+  timezone: string;
+  runAt?: string;
+  cronExpr?: string;
+}): string {
+  if (task.kind === "once") {
+    if (!task.runAt) {
+      throw new Error("runAt is required for one-shot reminders.");
+    }
+
+    return [
+      "提醒已创建：",
+      `时间：${formatRunAtForDisplay(task.runAt, task.timezone)}`,
+      `内容：${task.reminderText}`,
+    ].join("\n");
+  }
+
+  if (!task.cronExpr) {
+    throw new Error("cronExpr is required for recurring reminders.");
+  }
+
+  return [
+    "重复提醒已创建：",
+    `频率：${formatCronExprForDisplay(task.cronExpr)}`,
+    `内容：${task.reminderText}`,
+  ].join("\n");
 }
 
 export function createCreateScheduledTaskTool({
@@ -128,14 +164,11 @@ export function createCreateScheduledTaskTool({
           {
             type: "text",
             text: [
-              "已创建提醒任务。",
-              "",
-              formatTaskSummary(task),
-              timezoneProvided ? "" : "",
+              formatCreatedTaskMessage(task),
               timezoneProvided ? "" : `时区未显式指定，已使用当前机器默认时区：${timezone}`,
             ]
               .filter(Boolean)
-              .join("\n"),
+              .join("\n\n"),
           },
         ],
         details: {

@@ -24,15 +24,8 @@ type ScheduledTaskSchedulerParams = {
 
 function renderReminderMessage(task: {
   reminderText: string;
-  id: string;
-  nextRunAt: string;
 }): string {
-  return [
-    "提醒时间到了：",
-    `- ${task.reminderText}`,
-    `- 任务 ID：${task.id}`,
-    `- 计划时间：${task.nextRunAt}`,
-  ].join("\n");
+  return ["提醒时间到了：", task.reminderText].join("\n");
 }
 
 export function startScheduledTaskScheduler({
