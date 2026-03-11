@@ -20,6 +20,15 @@ export type AppConfig = {
   };
 };
 
+export type InboundAttachment = {
+  id: string;
+  name: string;
+  url: string;
+  contentType?: string;
+  size?: number;
+  localPath: string;
+};
+
 export type InboundMessage = {
   messageId: string;
   platform: "discord";
@@ -29,6 +38,7 @@ export type InboundMessage = {
   threadId?: string;
   sessionKey: string;
   text: string;
+  attachments: InboundAttachment[];
   createdAt: string;
   reply?: (content: string) => Promise<unknown>;
 };

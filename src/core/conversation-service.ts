@@ -28,6 +28,38 @@ type ConversationServiceParams = {
   transcriptStore: TranscriptStore;
 };
 
+function formatInboundMessageContent(message: InboundMessage): string {
+  const sections: string[] = [];
+  const trimmedText = message.text.trim();
+
+  if (trimmedText) {
+    sections.push(trimmedText);
+  }
+
+  if (message.attachments.length > 0) {
+    const attachmentLines = message.attachments.map((attachment, index) => {
+      const metadata = [
+        `名称=${attachment.name}`,
+        attachment.contentType ? `类型=${attachment.contentType}` : "",
+        typeof attachment.size === "number" ? `大小=${attachment.size}` : "",
+        `保存路径=${attachment.localPath}`,
+      ]
+        .filter(Boolean)
+        .join("，");
+      return `- 附件 ${index + 1}: ${metadata}`;
+    });
+
+    sections.push(
+      [
+        "附件已全部保存到本地临时目录，下面是可供读取/处理的路径：",
+        ...attachmentLines,
+      ].join("\n"),
+    );
+  }
+
+  return sections.join("\n\n").trim();
+}
+
 export function createConversationService({
   config,
   db,
@@ -53,7 +85,7 @@ export function createConversationService({
         id: message.messageId,
         sessionKey: message.sessionKey,
         role: "user",
-        content: message.text,
+        content: formatInboundMessageContent(message),
         createdAt: message.createdAt,
       });
 

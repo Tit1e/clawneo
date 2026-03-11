@@ -40,6 +40,7 @@ function toSessionKeyParts(
     channelId: context.channelId,
     threadId: context.threadId,
     text: "",
+    attachments: [],
     createdAt: new Date().toISOString(),
   };
 }
