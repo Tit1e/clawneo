@@ -68,6 +68,33 @@ function resolveExistingPath(source: string): string | null {
   return fs.existsSync(absolute) ? absolute : null;
 }
 
+function resolveRepoNameFromSource(source: string): string | null {
+  const trimmed = source.trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    return null;
+  }
+
+  const scpLikeMatch = trimmed.match(/^[^@]+@[^:]+:(.+)$/);
+  const normalized = scpLikeMatch ? scpLikeMatch[1]! : trimmed;
+  const withoutGit = normalized.replace(/\.git$/i, "");
+  const segments = withoutGit.split("/").filter(Boolean);
+  const lastSegment = segments.at(-1)?.trim();
+  return lastSegment || null;
+}
+
+function resolveLocalSourceName(sourcePath: string): string {
+  const stat = fs.statSync(sourcePath);
+  if (stat.isDirectory()) {
+    return path.basename(sourcePath);
+  }
+
+  if (sourcePath.endsWith("SKILL.md")) {
+    return path.basename(path.dirname(sourcePath));
+  }
+
+  return path.basename(path.dirname(sourcePath));
+}
+
 function readDeclaredSkillName(skillDir: string): string | null {
   const skillFilePath = path.join(skillDir, "SKILL.md");
   if (!fs.existsSync(skillFilePath)) {
@@ -158,6 +185,32 @@ function resolveInstallDir(target: SkillInstallTarget): string {
   return resolveClawneoSkillsDir();
 }
 
+function resolveInstalledSkillDirName(params: {
+  source: string;
+  sourceSkillDir: string;
+  workingRoot: string;
+  declaredName: string | null;
+}): string {
+  const declaredName = params.declaredName?.trim();
+  if (declaredName) {
+    return declaredName;
+  }
+
+  if (params.sourceSkillDir === params.workingRoot) {
+    const existingPath = resolveExistingPath(params.source);
+    if (existingPath) {
+      return resolveLocalSourceName(existingPath);
+    }
+
+    const repoName = resolveRepoNameFromSource(params.source);
+    if (repoName) {
+      return repoName;
+    }
+  }
+
+  return path.basename(params.sourceSkillDir);
+}
+
 function userExplicitlyRequestedGlobalInstall(userPrompt: string): boolean {
   const normalized = userPrompt.toLowerCase();
   return (
@@ -173,10 +226,11 @@ function userExplicitlyRequestedGlobalInstall(userPrompt: string): boolean {
 function installSkillDirectory(params: {
   sourceSkillDir: string;
   installDir: string;
+  installedDirName: string;
   overwrite: boolean;
 }): string {
   fs.mkdirSync(params.installDir, { recursive: true });
-  const targetDir = path.join(params.installDir, path.basename(params.sourceSkillDir));
+  const targetDir = path.join(params.installDir, params.installedDirName);
 
   if (fs.existsSync(targetDir)) {
     if (!params.overwrite) {
@@ -246,9 +300,16 @@ export function createInstallSkillTool(
         const candidates = discoverSkillCandidates(workingRoot);
         const selected = pickSkillCandidate(candidates, toolParams.skillName);
         const installDir = resolveInstallDir(target);
+        const installedDirName = resolveInstalledSkillDirName({
+          source,
+          sourceSkillDir: selected.dirPath,
+          workingRoot,
+          declaredName: selected.declaredName,
+        });
         const installedPath = installSkillDirectory({
           sourceSkillDir: selected.dirPath,
           installDir,
+          installedDirName,
           overwrite,
         });
 
