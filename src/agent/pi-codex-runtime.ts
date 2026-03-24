@@ -61,6 +61,21 @@ function buildContext(model: Model<Api>, systemPrompt: string, transcript: Store
   };
 }
 
+function buildMinimalUserOnlyContext(transcript: StoredMessage[]): Context {
+  const latestUser = [...transcript].reverse().find((entry) => entry.role === "user");
+  return {
+    messages: latestUser
+      ? [
+          {
+            role: "user",
+            content: latestUser.content,
+            timestamp: toTimestamp(latestUser.createdAt),
+          },
+        ]
+      : [],
+  };
+}
+
 function extractAssistantText(message: AssistantMessage): string {
   return message.content
     .filter((content) => content.type === "text")
@@ -185,14 +200,27 @@ export async function generatePiCodexReply(params: {
     throw new Error("Unable to resolve an API credential for the configured model.");
   }
 
-  const message = await completeSimple(model, buildContext(model, params.systemPrompt, params.transcript), {
+  const useMinimalApiKeyContext = credential.type === "token";
+  const context = useMinimalApiKeyContext
+    ? buildMinimalUserOnlyContext(params.transcript)
+    : buildContext(model, params.systemPrompt, params.transcript);
+
+  const message = await completeSimple(model, context, {
     apiKey,
     transport: "auto",
-    sessionId: params.sessionKey,
+    ...(useMinimalApiKeyContext ? {} : { sessionId: params.sessionKey }),
   });
   const text = extractAssistantText(message);
   if (!text) {
-    throw new Error("Codex response did not contain text output.");
+    const contentTypes = message.content.map((content) => content.type).join(", ");
+    console.error(
+      `[conversation] debug simple-completion session=${params.sessionKey} content=${JSON.stringify(
+        message.content,
+      )}`,
+    );
+    throw new Error(
+      `Codex response did not contain text output. contentTypes=${contentTypes || "none"}.`,
+    );
   }
   return text;
 }
