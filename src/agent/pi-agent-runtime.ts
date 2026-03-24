@@ -67,7 +67,10 @@ function resolveModel(
   const { provider, modelId } = resolveModelId(rawModel, credential);
   const discovered = modelRegistry.find(provider, modelId);
   if (discovered) {
-    return discovered;
+    return {
+      ...discovered,
+      baseUrl: baseUrl || discovered.baseUrl,
+    };
   }
 
   if (credential.type === "token") {
