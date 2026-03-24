@@ -61,21 +61,6 @@ function buildContext(model: Model<Api>, systemPrompt: string, transcript: Store
   };
 }
 
-function buildMinimalUserOnlyContext(transcript: StoredMessage[]): Context {
-  const latestUser = [...transcript].reverse().find((entry) => entry.role === "user");
-  return {
-    messages: latestUser
-      ? [
-          {
-            role: "user",
-            content: latestUser.content,
-            timestamp: toTimestamp(latestUser.createdAt),
-          },
-        ]
-      : [],
-  };
-}
-
 function extractAssistantText(message: AssistantMessage): string {
   return message.content
     .filter((content) => content.type === "text")
@@ -205,7 +190,16 @@ export async function generatePiCodexReply(params: {
 
   const useMinimalApiKeyContext = credential.type === "token";
   const context = useMinimalApiKeyContext
-    ? buildMinimalUserOnlyContext(params.transcript)
+    ? {
+        messages: params.transcript
+          .filter((entry) => entry.role === "user")
+          .slice(-1)
+          .map((entry) => ({
+            role: "user" as const,
+            content: entry.content,
+            timestamp: toTimestamp(entry.createdAt),
+          })),
+      }
     : buildContext(model, params.systemPrompt, params.transcript);
   const requestOptions = {
     apiKey,
@@ -213,32 +207,10 @@ export async function generatePiCodexReply(params: {
     ...(useMinimalApiKeyContext ? {} : { sessionId: params.sessionKey }),
   };
 
-  if (useMinimalApiKeyContext) {
-    console.error(
-      `[conversation] debug simple-completion request session=${params.sessionKey} model=${JSON.stringify({
-        provider: model.provider,
-        api: model.api,
-        id: model.id,
-        baseUrl: model.baseUrl,
-      })} context=${JSON.stringify(context.messages)} options=${JSON.stringify({
-        transport: requestOptions.transport,
-        hasSessionId: "sessionId" in requestOptions,
-      })}`,
-    );
-  }
-
   const message = await completeSimple(model, context, requestOptions);
   const text = extractAssistantText(message);
   if (!text) {
-    const contentTypes = message.content.map((content) => content.type).join(", ");
-    console.error(
-      `[conversation] debug simple-completion session=${params.sessionKey} content=${JSON.stringify(
-        message.content,
-      )}`,
-    );
-    throw new Error(
-      `Codex response did not contain text output. contentTypes=${contentTypes || "none"}.`,
-    );
+    throw new Error("Codex response did not contain text output.");
   }
   return text;
 }

@@ -162,14 +162,12 @@ async function handleOpenAiConfigUpdate(
     apiKey?: unknown;
     clearApiKey?: unknown;
     baseUrl?: unknown;
-    prompt?: unknown;
   };
   try {
     payload = JSON.parse(await readRequestBody(req)) as {
       apiKey?: unknown;
       clearApiKey?: unknown;
       baseUrl?: unknown;
-      prompt?: unknown;
     };
   } catch {
     sendJson(res, 400, { error: "invalid json body" });
@@ -226,14 +224,12 @@ async function handleOpenAiConnectivityTest(
     apiKey?: unknown;
     clearApiKey?: unknown;
     baseUrl?: unknown;
-    prompt?: unknown;
   };
   try {
     payload = JSON.parse(await readRequestBody(req)) as {
       apiKey?: unknown;
       clearApiKey?: unknown;
       baseUrl?: unknown;
-      prompt?: unknown;
     };
   } catch {
     sendJson(res, 400, { error: "invalid json body" });
@@ -248,7 +244,6 @@ async function handleOpenAiConnectivityTest(
   const apiKey = clearApiKey ? inputApiKey : inputApiKey || savedApiKey;
   const baseUrl = resolveString(payload.baseUrl, resolveString(agent.baseUrl, DEFAULT_BASE_URL));
   const modelName = resolveString(agent.model, "gpt-5-codex");
-  const prompt = resolveString(payload.prompt, "Reply with exactly OK.");
 
   if (!apiKey) {
     sendJson(res, 400, { error: "没有可用的 API Key。请先输入 API Key，或先保存一个可用的 API Key。" });
@@ -262,7 +257,7 @@ async function handleOpenAiConnectivityTest(
     const response = await completeSimple(
       model,
       {
-        messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
+        messages: [{ role: "user", content: "Reply with exactly OK.", timestamp: Date.now() }],
       },
       {
         apiKey,
@@ -286,7 +281,6 @@ async function handleOpenAiConnectivityTest(
         responseText: "(empty response)",
         model: modelName,
         baseUrl,
-        prompt,
       });
       return;
     }
@@ -297,7 +291,6 @@ async function handleOpenAiConnectivityTest(
       responseText: text,
       model: modelName,
       baseUrl,
-      prompt,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -307,7 +300,6 @@ async function handleOpenAiConnectivityTest(
       error: message,
       model: modelName,
       baseUrl,
-      prompt,
     });
   }
 }

@@ -18,7 +18,6 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
-import type { AuthProfileCredential } from "../auth/types.js";
 import type { AppConfig, ModelReplyResult, StoredMessage, ToolExecutionRecord } from "../core/types.js";
 import type { ToolRequestContext } from "../core/types.js";
 import type { ScheduledTaskStore } from "../scheduled-tasks/store.js";
@@ -33,27 +32,17 @@ import { createInstallSkillTool } from "../tools/skill-installer.js";
 
 const DEFAULT_CONTEXT_TOKENS = 272000;
 
-function resolveModelId(rawModel: string, credential: AuthProfileCredential): { provider: string; modelId: string } {
+function resolveModelId(rawModel: string): { provider: string; modelId: string } {
   const trimmed = rawModel.trim();
   if (!trimmed) {
-    return {
-      provider: credential.type === "token" ? "openai" : "openai-codex",
-      modelId: "gpt-5.4",
-    };
+    return { provider: "openai-codex", modelId: "gpt-5.4" };
   }
   const separatorIndex = trimmed.indexOf("/");
   if (separatorIndex <= 0) {
-    return {
-      provider: credential.type === "token" ? "openai" : "openai-codex",
-      modelId: trimmed,
-    };
+    return { provider: "openai-codex", modelId: trimmed };
   }
-  const rawProvider = trimmed.slice(0, separatorIndex).trim();
   return {
-    provider:
-      credential.type === "token"
-        ? (rawProvider === "openai-codex" ? "openai" : rawProvider || "openai")
-        : rawProvider || "openai-codex",
+    provider: trimmed.slice(0, separatorIndex).trim() || "openai-codex",
     modelId: trimmed.slice(separatorIndex + 1).trim() || "gpt-5.4",
   };
 }
@@ -62,32 +51,13 @@ function resolveModel(
   modelRegistry: ModelRegistry,
   rawModel: string,
   baseUrl: string,
-  credential: AuthProfileCredential,
 ): Model<Api> {
-  const { provider, modelId } = resolveModelId(rawModel, credential);
+  const { provider, modelId } = resolveModelId(rawModel);
   const discovered = modelRegistry.find(provider, modelId);
   if (discovered) {
     return {
       ...discovered,
       baseUrl: baseUrl || discovered.baseUrl,
-    };
-  }
-
-  if (credential.type === "token") {
-    if (provider !== "openai") {
-      throw new Error(`Unsupported provider "${provider}". API Key mode currently only supports openai.`);
-    }
-    return {
-      id: modelId,
-      name: modelId,
-      api: "openai-responses",
-      provider,
-      baseUrl,
-      reasoning: true,
-      input: ["text", "image"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: DEFAULT_CONTEXT_TOKENS,
-      maxTokens: DEFAULT_CONTEXT_TOKENS,
     };
   }
 
@@ -187,73 +157,6 @@ function extractLatestUserPrompt(transcript: StoredMessage[]): string {
   return latest.content;
 }
 
-function summarizeMessageForDebug(message: unknown): Record<string, unknown> {
-  if (!message || typeof message !== "object") {
-    return { rawType: typeof message };
-  }
-
-  const candidate = message as {
-    role?: unknown;
-    stopReason?: unknown;
-    content?: unknown;
-    errorMessage?: unknown;
-  };
-
-  const contentSummary = Array.isArray(candidate.content)
-    ? candidate.content.map((item) => {
-        if (!item || typeof item !== "object") {
-          return { rawType: typeof item };
-        }
-        const block = item as {
-          type?: unknown;
-          text?: unknown;
-          thinking?: unknown;
-          name?: unknown;
-          arguments?: unknown;
-        };
-        return {
-          type: block.type,
-          text:
-            typeof block.text === "string"
-              ? block.text.slice(0, 200)
-              : typeof block.thinking === "string"
-                ? block.thinking.slice(0, 200)
-                : undefined,
-          name: typeof block.name === "string" ? block.name : undefined,
-          hasArguments: block.arguments !== undefined,
-        };
-      })
-    : candidate.content;
-
-  return {
-    role: candidate.role,
-    stopReason: candidate.stopReason,
-    errorMessage: candidate.errorMessage,
-    content: contentSummary,
-  };
-}
-
-function logSessionMessagesDebug(
-  sessionKey: string,
-  sessionMessages: Array<{ role: string; content?: unknown; stopReason?: unknown; errorMessage?: unknown }>,
-): void {
-  const tail = sessionMessages.slice(-5).map((message, index) => ({
-    indexFromTail: sessionMessages.slice(-5).length - 1 - index,
-    ...summarizeMessageForDebug(message),
-  }));
-
-  const latestAssistant = [...sessionMessages]
-    .reverse()
-    .find((message) => message.role === "assistant");
-
-  console.error(`[conversation] debug session=${sessionKey} messageTail=${JSON.stringify(tail)}`);
-  console.error(
-    `[conversation] debug session=${sessionKey} latestAssistant=${JSON.stringify(
-      summarizeMessageForDebug(latestAssistant),
-    )}`,
-  );
-}
-
 function extractReply(sessionMessages: Array<{ role: string; content?: unknown }>): string {
   const latestAssistant = [...sessionMessages]
     .reverse()
@@ -319,33 +222,21 @@ export async function generateAgentReply(params: {
 }): Promise<ModelReplyResult> {
   const credential = await resolveOpenAICodexCredential(params.config);
   const authStorage = AuthStorage.inMemory({
-    ...(credential.type === "oauth"
-      ? {
-          "openai-codex": {
-            type: "oauth" as const,
+    "openai-codex":
+      credential.type === "oauth"
+        ? {
+            type: "oauth",
             access: credential.access,
             refresh: credential.refresh,
             expires: credential.expires,
-          },
-        }
-      : {
-          openai: {
-            type: "api_key" as const,
+          }
+        : {
+            type: "api_key",
             key: credential.token,
           },
-          "openai-codex": {
-            type: "api_key" as const,
-            key: credential.token,
-          },
-        }),
   });
   const modelRegistry = new ModelRegistry(authStorage);
-  const model = resolveModel(
-    modelRegistry,
-    params.config.agent.model,
-    params.config.agent.baseUrl,
-    credential,
-  );
+  const model = resolveModel(modelRegistry, params.config.agent.model, params.config.agent.baseUrl);
   const apiKey = await modelRegistry.getApiKey(model);
   if (!apiKey) {
     throw new Error("Unable to resolve an API credential for the configured model.");
@@ -357,41 +248,36 @@ export async function generateAgentReply(params: {
     params.config.runtime.skillsDirs,
   );
   const latestUserPrompt = extractLatestUserPrompt(params.transcript);
-  const useMinimalApiKeyAgent = credential.type === "token";
   const { session } = await createAgentSession({
     cwd: params.config.agent.toolCwd,
     authStorage,
     modelRegistry,
     model,
-    thinkingLevel: useMinimalApiKeyAgent ? undefined : "medium",
+    thinkingLevel: "medium",
     resourceLoader,
-    tools: useMinimalApiKeyAgent
-      ? []
-      : [
-          createReadTool(params.config.agent.toolCwd),
-          createLsTool(params.config.agent.toolCwd),
-          createGrepTool(params.config.agent.toolCwd),
-          createBashTool(params.config.agent.toolCwd, {
-            operations: createSecureBashOperations(),
-          }),
-        ],
-    customTools: useMinimalApiKeyAgent
-      ? []
-      : [
-          createInstallSkillTool({ latestUserPrompt }),
-          createCreateScheduledTaskTool({
-            store: params.scheduledTaskStore,
-            context: params.context,
-          }),
-          createListScheduledTasksTool({
-            store: params.scheduledTaskStore,
-            context: params.context,
-          }),
-          createCancelScheduledTaskTool({
-            store: params.scheduledTaskStore,
-            context: params.context,
-          }),
-        ],
+    tools: [
+      createReadTool(params.config.agent.toolCwd),
+      createLsTool(params.config.agent.toolCwd),
+      createGrepTool(params.config.agent.toolCwd),
+      createBashTool(params.config.agent.toolCwd, {
+        operations: createSecureBashOperations(),
+      }),
+    ],
+    customTools: [
+      createInstallSkillTool({ latestUserPrompt }),
+      createCreateScheduledTaskTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+      createListScheduledTasksTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+      createCancelScheduledTaskTool({
+        store: params.scheduledTaskStore,
+        context: params.context,
+      }),
+    ],
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },
@@ -432,23 +318,8 @@ export async function generateAgentReply(params: {
     if (params.signal?.aborted) {
       throw new Error("Request was cancelled");
     }
-    let reply: string;
-    try {
-      reply = extractReply(session.state.messages);
-    } catch (error) {
-      logSessionMessagesDebug(
-        params.sessionKey,
-        session.state.messages as Array<{
-          role: string;
-          content?: unknown;
-          stopReason?: unknown;
-          errorMessage?: unknown;
-        }>,
-      );
-      throw error;
-    }
     return {
-      reply,
+      reply: extractReply(session.state.messages),
       toolEvents,
     };
   } finally {
