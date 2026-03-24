@@ -204,12 +204,27 @@ export async function generatePiCodexReply(params: {
   const context = useMinimalApiKeyContext
     ? buildMinimalUserOnlyContext(params.transcript)
     : buildContext(model, params.systemPrompt, params.transcript);
-
-  const message = await completeSimple(model, context, {
+  const requestOptions = {
     apiKey,
-    transport: "auto",
+    transport: "auto" as const,
     ...(useMinimalApiKeyContext ? {} : { sessionId: params.sessionKey }),
-  });
+  };
+
+  if (useMinimalApiKeyContext) {
+    console.error(
+      `[conversation] debug simple-completion request session=${params.sessionKey} model=${JSON.stringify({
+        provider: model.provider,
+        api: model.api,
+        id: model.id,
+        baseUrl: model.baseUrl,
+      })} context=${JSON.stringify(context.messages)} options=${JSON.stringify({
+        transport: requestOptions.transport,
+        hasSessionId: "sessionId" in requestOptions,
+      })}`,
+    );
+  }
+
+  const message = await completeSimple(model, context, requestOptions);
   const text = extractAssistantText(message);
   if (!text) {
     const contentTypes = message.content.map((content) => content.type).join(", ");
