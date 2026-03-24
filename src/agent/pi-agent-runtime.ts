@@ -354,36 +354,41 @@ export async function generateAgentReply(params: {
     params.config.runtime.skillsDirs,
   );
   const latestUserPrompt = extractLatestUserPrompt(params.transcript);
+  const useMinimalApiKeyAgent = credential.type === "token";
   const { session } = await createAgentSession({
     cwd: params.config.agent.toolCwd,
     authStorage,
     modelRegistry,
     model,
-    thinkingLevel: "medium",
+    thinkingLevel: useMinimalApiKeyAgent ? undefined : "medium",
     resourceLoader,
-    tools: [
-      createReadTool(params.config.agent.toolCwd),
-      createLsTool(params.config.agent.toolCwd),
-      createGrepTool(params.config.agent.toolCwd),
-      createBashTool(params.config.agent.toolCwd, {
-        operations: createSecureBashOperations(),
-      }),
-    ],
-    customTools: [
-      createInstallSkillTool({ latestUserPrompt }),
-      createCreateScheduledTaskTool({
-        store: params.scheduledTaskStore,
-        context: params.context,
-      }),
-      createListScheduledTasksTool({
-        store: params.scheduledTaskStore,
-        context: params.context,
-      }),
-      createCancelScheduledTaskTool({
-        store: params.scheduledTaskStore,
-        context: params.context,
-      }),
-    ],
+    tools: useMinimalApiKeyAgent
+      ? []
+      : [
+          createReadTool(params.config.agent.toolCwd),
+          createLsTool(params.config.agent.toolCwd),
+          createGrepTool(params.config.agent.toolCwd),
+          createBashTool(params.config.agent.toolCwd, {
+            operations: createSecureBashOperations(),
+          }),
+        ],
+    customTools: useMinimalApiKeyAgent
+      ? []
+      : [
+          createInstallSkillTool({ latestUserPrompt }),
+          createCreateScheduledTaskTool({
+            store: params.scheduledTaskStore,
+            context: params.context,
+          }),
+          createListScheduledTasksTool({
+            store: params.scheduledTaskStore,
+            context: params.context,
+          }),
+          createCancelScheduledTaskTool({
+            store: params.scheduledTaskStore,
+            context: params.context,
+          }),
+        ],
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },
