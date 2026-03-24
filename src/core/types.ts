@@ -6,6 +6,8 @@ export type AppConfig = {
   };
   agent: {
     model: string;
+    apiKey: string;
+    baseUrl: string;
     workspaceRoot: string;
     toolCwd: string;
     userProfilePath: string;

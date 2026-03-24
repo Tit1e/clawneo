@@ -180,6 +180,19 @@ function syncLocalCodexCredential(config: AppConfig): { profileId: string; store
   return persistCredential(config, localCredential);
 }
 
+function resolveConfiguredApiKeyCredential(config: AppConfig): AuthProfileCredential | null {
+  const token = config.agent.apiKey.trim();
+  if (!token) {
+    return null;
+  }
+
+  return {
+    type: "token",
+    provider: "openai-codex",
+    token,
+  };
+}
+
 export function normalizeOpenAICodexModel(model: string): string {
   const trimmed = model.trim();
   if (trimmed.toLowerCase().startsWith("openai-codex/")) {
@@ -227,6 +240,11 @@ async function refreshStoredCredential(
 }
 
 export async function resolveOpenAICodexCredential(config: AppConfig): Promise<AuthProfileCredential> {
+  const configuredApiKey = resolveConfiguredApiKeyCredential(config);
+  if (configuredApiKey) {
+    return configuredApiKey;
+  }
+
   const store = ensureAuthStore(config.runtime.authStorePath);
   const resolved = resolveDefaultOpenAICodexProfile(store);
   if (resolved) {
@@ -254,7 +272,9 @@ export async function resolveOpenAICodexCredential(config: AppConfig): Promise<A
     return synced.stored;
   }
 
-  throw new Error('No OpenAI Codex OAuth profile found. Run "npm run auth:login" first.');
+  throw new Error(
+    'No OpenAI credential found. Set "agent.apiKey", or run "npm run auth:login" to authorize with OpenAI Codex OAuth.',
+  );
 }
 
 export async function resolveOpenAICodexAccessToken(config: AppConfig): Promise<string> {

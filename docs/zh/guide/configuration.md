@@ -23,6 +23,8 @@ clawneo config
 交互式配置流程可帮助你管理：
 
 - OpenAI 授权
+- OpenAI API Key
+- OpenAI Base URL
 - Discord Bot Token
 - 允许的 Discord 用户 ID
 - 允许的 Discord 服务器 ID
@@ -33,7 +35,9 @@ clawneo config
 
 要得到一个可正常连接 Discord 的助手，你至少需要：
 
-1. 一个已授权的 OpenAI Codex 配置
+1. 一个可用的 OpenAI 配置
+   - API Key，或
+   - 已授权的 OpenAI Codex 配置
 2. 一个 Discord Bot Token
 3. 至少一个 Discord 访问范围
    - 允许的用户 ID，或
@@ -61,7 +65,10 @@ clawneo config
 
 ## OpenAI 授权
 
-ClawNeo 使用 OpenAI Codex OAuth。
+ClawNeo 支持两种 OpenAI 连接方式：
+
+- API Key
+- OpenAI Codex OAuth
 
 在 CLI 中运行：
 
@@ -69,10 +76,13 @@ ClawNeo 使用 OpenAI Codex OAuth。
 clawneo config
 ```
 
-然后选择：
+然后选择 `OpenAI 设置`，你可以配置：
 
 ```text
-OpenAI Settings -> Authorize OpenAI
+模型
+API Key
+Base URL
+Authorize OpenAI
 ```
 
 相关本地文件：
@@ -102,12 +112,15 @@ OpenAI Settings -> Authorize OpenAI
 常见字段：
 
 - `agent.model`
+- `agent.apiKey`
+- `agent.baseUrl`
 - `agent.workspaceRoot`
 - `agent.toolCwd`
 
 默认值：
 
 - model：`gpt-5-codex`
+- baseUrl：`https://chatgpt.com/backend-api`
 - workspace root：`~/.clawneo/workspace`
 - tool cwd：当前用户主目录
 
@@ -151,6 +164,8 @@ ClawNeo 支持通过环境变量覆盖常见路径和运行时行为。
 ### Agent 与 Shell
 
 - `CLAWNEO_MODEL`
+- `CLAWNEO_API_KEY`
+- `CLAWNEO_BASE_URL`
 - `CLAWNEO_SHELL`
 - `CLAWNEO_UI_NO_OPEN=1`
 

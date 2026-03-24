@@ -20,6 +20,8 @@ const RESTART_SENSITIVE_FIELDS = [
   "discord.allowedUserIds",
   "discord.allowedGuildIds",
   "agent.model",
+  "agent.apiKey",
+  "agent.baseUrl",
   "agent.workspaceRoot",
   "agent.toolCwd",
   "runtime.authStorePath",
@@ -129,11 +131,33 @@ function printMainSummary(configPath: string): void {
   const config = loadConfig();
   console.log(chalk.bold("Current configuration"));
   console.log(`${chalk.dim("-")} OpenAI model: ${config.agent.model}`);
+  console.log(`${chalk.dim("-")} OpenAI base URL: ${config.agent.baseUrl}`);
+  console.log(`${chalk.dim("-")} OpenAI API Key: ${maskToken(config.agent.apiKey || null)}`);
   console.log(`${chalk.dim("-")} Tool cwd: ${config.agent.toolCwd}`);
   console.log(`${chalk.dim("-")} Discord token: ${maskToken(config.discord.token || null)}`);
   console.log(`${chalk.dim("-")} Allowed users: ${config.discord.allowedUserIds.length || "all"}`);
   console.log(`${chalk.dim("-")} Allowed guilds: ${config.discord.allowedGuildIds.length || "all"}`);
   console.log(`${chalk.dim("-")} Config file: ${configPath}`);
+  console.log("");
+}
+
+function resolveOpenAiMode(agentSection: ConfigObject): string {
+  const apiKey = trimString(agentSection.apiKey);
+  if (apiKey) {
+    return "API Key";
+  }
+  return "OAuth 或本地 auth store";
+}
+
+function printOpenAiSummary(agentSection: ConfigObject): void {
+  console.log("");
+  console.log(chalk.bold("当前 OpenAI 状态"));
+  console.log(`${chalk.dim("-")} 生效方式: ${chalk.green(resolveOpenAiMode(agentSection))}`);
+  console.log(`${chalk.dim("-")} API Key: ${maskToken(trimString(agentSection.apiKey))}`);
+  console.log(
+    `${chalk.dim("-")} Base URL: ${chalk.green(trimString(agentSection.baseUrl) ?? "https://chatgpt.com/backend-api")}`,
+  );
+  console.log(`${chalk.dim("-")} 模型: ${chalk.green(trimString(agentSection.model) ?? "gpt-5-codex")}`);
   console.log("");
 }
 
@@ -238,13 +262,51 @@ async function runOpenAiAuthorization(): Promise<void> {
   await input({ message: "按回车继续" });
 }
 
+async function runOpenAiApiKeySetup(draft: MutableConfig, configPath: string): Promise<void> {
+  const agentSection = ensureSection(draft, "agent");
+
+  const apiKeyResult = await promptStringField(
+    "OpenAI API Key",
+    maskToken(trimString(agentSection.apiKey)),
+    {
+      allowClear: true,
+      help: "输入 * 可清空 API Key。配置后会优先使用 API Key，不再走 OAuth。",
+      secret: true,
+    },
+  );
+  if (apiKeyResult.changed && apiKeyResult.value !== undefined) {
+    setStringField(draft, "agent", "apiKey", apiKeyResult.value);
+    persistConfig(configPath, draft);
+  }
+
+  const latestAgentSection = ensureSection(draft, "agent");
+  const baseUrlResult = await promptStringField(
+    "OpenAI Base URL",
+    trimString(latestAgentSection.baseUrl),
+    {
+      allowClear: true,
+      help: "输入 * 可恢复默认值 https://chatgpt.com/backend-api",
+    },
+  );
+  if (baseUrlResult.changed && baseUrlResult.value !== undefined) {
+    setStringField(draft, "agent", "baseUrl", baseUrlResult.value);
+    persistConfig(configPath, draft);
+  }
+}
+
 async function runOpenAiMenu(draft: MutableConfig, configPath: string): Promise<void> {
   while (true) {
     const agentSection = ensureSection(draft, "agent");
+    printOpenAiSummary(agentSection);
     const choice = await select({
       message: "OpenAI 设置",
       choices: [
         { name: `模型（${trimString(agentSection.model) ?? "gpt-5-codex"}）`, value: "model" },
+        { name: `API Key（${maskToken(trimString(agentSection.apiKey))}）`, value: "apiKey" },
+        {
+          name: `Base URL（${trimString(agentSection.baseUrl) ?? "默认"}）`,
+          value: "baseUrl",
+        },
         { name: "授权 OpenAI", value: "authorizeOpenAi" },
         { name: "返回上一级", value: "back" },
       ],
@@ -256,6 +318,24 @@ async function runOpenAiMenu(draft: MutableConfig, configPath: string): Promise<
 
     if (choice === "authorizeOpenAi") {
       await runOpenAiAuthorization();
+      continue;
+    }
+
+    if (choice === "apiKey") {
+      await runOpenAiApiKeySetup(draft, configPath);
+      continue;
+    }
+
+    if (choice === "baseUrl") {
+      const result = await promptStringField(
+        "OpenAI Base URL",
+        trimString(agentSection.baseUrl),
+        { allowClear: true, help: "输入 * 可清除覆盖设置并恢复默认值。" },
+      );
+      if (result.changed && result.value !== undefined) {
+        setStringField(draft, "agent", "baseUrl", result.value);
+        persistConfig(configPath, draft);
+      }
       continue;
     }
 

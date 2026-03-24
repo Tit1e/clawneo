@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import process from "node:process";
 import chalk from "chalk";
-import { confirm, input } from "@inquirer/prompts";
+import { confirm, input, password, select } from "@inquirer/prompts";
 import { loginWithOpenAICodexOAuth, resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
 import { loadConfig } from "../config/load-config.js";
 
@@ -96,15 +96,52 @@ function needsOnboarding(checks: OnboardingCheck): boolean {
 }
 
 async function runOpenAiStep(): Promise<void> {
-  const config = loadConfig();
   console.log("");
   console.log(chalk.bold("OpenAI 状态：未授权"));
-  console.log(chalk.dim("ClawNeo 需要先完成 OpenAI Codex OAuth 登录。"));
-  console.log(chalk.dim("继续后会打开浏览器进行授权。"));
+  console.log(chalk.dim("你可以选择使用 API Key，或使用 OpenAI Codex OAuth。"));
   console.log("");
 
+  const authMode = await select({
+    message: "选择 OpenAI 连接方式",
+    choices: [
+      { name: "API Key", value: "apiKey" },
+      { name: "OpenAI Codex OAuth", value: "oauth" },
+      { name: "取消", value: "cancel" },
+    ],
+  });
+
+  if (authMode === "cancel") {
+    throw new Error("已取消首次启动引导。");
+  }
+
+  if (authMode === "apiKey") {
+    console.log("");
+    console.log(chalk.dim("请输入 OpenAI API Key。"));
+    console.log(chalk.dim("如果你要接兼容接口，也可以顺手填写自定义 Base URL。"));
+    console.log("");
+
+    const apiKey = (await password({ message: "OpenAI API Key" })).trim();
+    if (!apiKey) {
+      throw new Error("未填写 OpenAI API Key，已取消首次启动引导。");
+    }
+    const baseUrl = (await input({
+      message: "OpenAI Base URL（可留空，默认 https://chatgpt.com/backend-api）",
+    })).trim();
+
+    const config = loadConfig();
+    const draft = readConfigDocument(config.runtime.configPath);
+    const agent = ensureSection(draft, "agent");
+    agent.apiKey = apiKey;
+    if (baseUrl) {
+      agent.baseUrl = baseUrl;
+    }
+    writeConfigDocument(config.runtime.configPath, draft);
+    console.log(chalk.green("OpenAI API Key 已保存。"));
+    return;
+  }
+
   const proceed = await confirm({
-    message: "现在开始授权？",
+    message: "现在开始 OAuth 授权？",
     default: true,
   });
 
@@ -112,6 +149,7 @@ async function runOpenAiStep(): Promise<void> {
     throw new Error("已取消首次启动引导。");
   }
 
+  const config = loadConfig();
   console.log("");
   await loginWithOpenAICodexOAuth(config);
   console.log(chalk.green("OpenAI 授权成功。"));
@@ -168,7 +206,10 @@ function printSummary(): void {
   const config = loadConfig();
   console.log("");
   console.log(chalk.bold.cyan("基础配置完成"));
-  console.log(`${chalk.dim("-")} OpenAI 已授权: ${chalk.green("是")}`);
+  console.log(`${chalk.dim("-")} OpenAI 已配置: ${chalk.green("是")}`);
+  console.log(
+    `${chalk.dim("-")} OpenAI Base URL: ${config.agent.baseUrl ? chalk.green(config.agent.baseUrl) : chalk.dim("-")}`,
+  );
   console.log(`${chalk.dim("-")} Discord Bot Token: ${chalk.green("已配置")}`);
   console.log(
     `${chalk.dim("-")} Allowed User IDs: ${

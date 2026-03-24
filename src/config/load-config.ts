@@ -19,6 +19,8 @@ type JsonConfig = {
   };
   agent?: {
     model?: unknown;
+    apiKey?: unknown;
+    baseUrl?: unknown;
     workspaceRoot?: unknown;
     toolCwd?: unknown;
   };
@@ -137,6 +139,10 @@ export function loadConfig(): AppConfig {
       model:
         (readString(fileConfig.agent?.model) ?? process.env.CLAWNEO_MODEL?.trim()) ||
         "gpt-5-codex",
+      apiKey: (readString(fileConfig.agent?.apiKey) ?? process.env.CLAWNEO_API_KEY?.trim()) || "",
+      baseUrl:
+        (readString(fileConfig.agent?.baseUrl) ?? process.env.CLAWNEO_BASE_URL?.trim()) ||
+        "https://chatgpt.com/backend-api",
       workspaceRoot,
       toolCwd,
       userProfilePath,

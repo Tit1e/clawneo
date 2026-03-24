@@ -11,7 +11,7 @@
     <header class="hero">
       <div>
         <h1>ClawNeo 控制台</h1>
-        <p class="subtitle">本地只读状态页，展示服务进程、运行时、Discord、模型认证和最近日志。</p>
+        <p class="subtitle">本地控制台，展示服务进程、运行时、Discord、模型认证和最近日志，并支持修改 OpenAI 连接配置。</p>
       </div>
       <div class="meta">
         <div>API: <code>/api/status</code></div>
@@ -96,6 +96,12 @@
         <dl>
           <dt>模型</dt>
           <dd id="model-name">-</dd>
+          <dt>Base URL</dt>
+          <dd id="model-base-url" class="path">-</dd>
+          <dt>认证来源</dt>
+          <dd id="model-auth-source">-</dd>
+          <dt>当前认证</dt>
+          <dd id="model-auth-summary" class="muted">-</dd>
           <dt>默认 Profile</dt>
           <dd id="model-default-profile">-</dd>
           <dt>认证可用</dt>
@@ -109,6 +115,37 @@
           <dt>认证存储</dt>
           <dd id="model-auth-store" class="path">-</dd>
         </dl>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>OpenAI 配置</h2>
+          <div class="muted">保存后会更新配置文件；如果服务正在运行，会自动重启。</div>
+        </div>
+        <form id="openai-config-form" class="config-form">
+          <label class="field">
+            <span>Base URL</span>
+            <input id="openai-base-url-input" name="baseUrl" type="text" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span>API Key</span>
+            <input
+              id="openai-api-key-input"
+              name="apiKey"
+              type="password"
+              autocomplete="new-password"
+              placeholder="留空表示保持当前值"
+            />
+          </label>
+          <label class="checkbox-field">
+            <input id="openai-clear-api-key-input" name="clearApiKey" type="checkbox" />
+            <span>清空当前 API Key</span>
+          </label>
+          <div class="form-actions">
+            <button id="openai-config-save" type="submit">保存 OpenAI 配置</button>
+            <div id="openai-config-status" class="muted">-</div>
+          </div>
+        </form>
       </section>
 
       <section class="card logs">

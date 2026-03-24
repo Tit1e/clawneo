@@ -8,7 +8,7 @@ ClawNeo 是一个个人 AI 助手 CLI 与 Discord bridge。
 
 它支持：
 - 通过 Discord 和助手对话
-- 使用 OpenAI Codex OAuth 登录
+- 使用 OpenAI Codex OAuth 或 API Key
 - 调用 `read` / `ls` / `grep` / `bash` 工具
 - 在 Discord 中通过自然语言创建提醒类定时任务（实验性）
 - 保存结构化用户偏好
@@ -50,7 +50,12 @@ clawneo --version
 clawneo config
 ```
 
-如果你需要随时授权或重新授权 OpenAI，请进入 `clawneo config`，然后选择 `OpenAI 设置` -> `授权 OpenAI`。
+如果你需要随时配置 OpenAI，请进入 `clawneo config`，然后选择 `OpenAI 设置`。
+你可以在这里设置：
+- API Key
+- Base URL
+- 模型
+- OAuth 授权
 
 主配置文件默认位于：
 

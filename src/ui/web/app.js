@@ -67,6 +67,26 @@ function setText(id, value) {
   element.textContent = value ?? "-";
 }
 
+function setInputValue(id, value) {
+  const element = document.getElementById(id);
+  if (!element) {
+    return;
+  }
+  if (document.activeElement === element) {
+    return;
+  }
+  element.value = value ?? "";
+}
+
+function setStatusMessage(message, isError = false) {
+  const element = document.getElementById("openai-config-status");
+  if (!element) {
+    return;
+  }
+  element.textContent = message;
+  element.style.color = isError ? "var(--bad)" : "var(--muted)";
+}
+
 function renderLogs(lines) {
   const logs = document.getElementById("logs");
   if (!logs) {
@@ -147,15 +167,68 @@ function render(snapshot) {
   renderSkillsDirStats(snapshot.runtime.skillsDirStats);
 
   setText("model-name", snapshot.model.model);
+  setText("model-base-url", snapshot.model.baseUrl);
+  setText("model-auth-source", snapshot.model.authSourceLabel);
+  setText("model-auth-summary", snapshot.model.authSummary);
   setText("model-default-profile", snapshot.model.defaultProfileId ?? "-");
   badgeState(document.getElementById("model-auth-usable"), snapshot.model.authUsable);
   badgeState(document.getElementById("model-token-expired"), snapshot.model.tokenExpired);
   setText("model-credential-type", snapshot.model.credentialType ?? "-");
   setText("model-profiles", String(snapshot.model.oauthProfileCount));
   setText("model-auth-store", snapshot.model.authStore);
+  setInputValue("openai-base-url-input", snapshot.model.baseUrl);
 
   renderLogs(snapshot.logs);
   setText("updated-at", `更新时间：${new Date().toLocaleString()}`);
+}
+
+async function saveOpenAiConfig(event) {
+  event.preventDefault();
+
+  const saveButton = document.getElementById("openai-config-save");
+  const apiKeyInput = document.getElementById("openai-api-key-input");
+  const baseUrlInput = document.getElementById("openai-base-url-input");
+  const clearApiKeyInput = document.getElementById("openai-clear-api-key-input");
+
+  if (!saveButton || !apiKeyInput || !baseUrlInput || !clearApiKeyInput) {
+    return;
+  }
+
+  saveButton.disabled = true;
+  setStatusMessage("正在保存...");
+
+  try {
+    const response = await fetch("/api/openai-config", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: apiKeyInput.value,
+        baseUrl: baseUrlInput.value,
+        clearApiKey: clearApiKeyInput.checked,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    apiKeyInput.value = "";
+    clearApiKeyInput.checked = false;
+    setStatusMessage(payload.message || "配置已保存。");
+    if (payload.snapshot) {
+      render(payload.snapshot);
+    } else {
+      await refresh();
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatusMessage(`保存失败：${message}`, true);
+  } finally {
+    saveButton.disabled = false;
+  }
 }
 
 async function refresh() {
@@ -177,6 +250,12 @@ async function tick() {
 }
 
 await tick();
+const configForm = document.getElementById("openai-config-form");
+if (configForm) {
+  configForm.addEventListener("submit", (event) => {
+    void saveOpenAiConfig(event);
+  });
+}
 setInterval(() => {
   void tick();
 }, 5000);

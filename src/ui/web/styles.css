@@ -84,6 +84,14 @@ h1 {
   color: var(--accent);
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
 dl {
   margin: 0;
   display: grid;
@@ -129,6 +137,65 @@ dd {
 .muted,
 code {
   color: var(--muted);
+}
+
+.config-form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span,
+.checkbox-field span {
+  color: var(--muted);
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 252, 246, 0.92);
+  color: var(--ink);
+  font: inherit;
+}
+
+.field input:focus {
+  outline: 2px solid rgba(15, 90, 118, 0.18);
+  border-color: var(--accent);
+}
+
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fffaf2;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-actions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .logs-header {

@@ -44,12 +44,16 @@ export type StatusSnapshot = {
   };
   model: {
     model: string;
+    baseUrl: string;
     authStore: string;
     defaultProfileId: string | null;
     oauthProfileCount: number;
     authUsable: boolean;
     tokenExpired: boolean | null;
     credentialType: "oauth" | "token" | null;
+    authSource: "config_api_key" | "auth_store" | null;
+    authSourceLabel: string;
+    authSummary: string;
   };
   logs: string[];
 };
@@ -309,6 +313,36 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatModelAuthSourceLabel(source: StatusSnapshot["model"]["authSource"]): string {
+  switch (source) {
+    case "config_api_key":
+      return "配置文件 / 环境变量 API Key";
+    case "auth_store":
+      return "本地 auth store";
+    default:
+      return "-";
+  }
+}
+
+function formatModelAuthSummary(params: {
+  authSource: StatusSnapshot["model"]["authSource"];
+  credentialType: StatusSnapshot["model"]["credentialType"];
+}): string {
+  if (params.authSource === "config_api_key") {
+    return "当前优先使用 API Key。即使本地已有 OAuth profile，也不会优先使用。";
+  }
+
+  if (params.authSource === "auth_store" && params.credentialType === "oauth") {
+    return "当前使用本地保存的 OAuth profile。";
+  }
+
+  if (params.authSource === "auth_store" && params.credentialType === "token") {
+    return "当前使用 auth store 里的 token profile。";
+  }
+
+  return "当前还没有可用认证。";
+}
+
 export function collectStatusSnapshot(): StatusSnapshot {
   const config = loadConfig();
   const runningPid = ensureFreshPidState();
@@ -317,12 +351,19 @@ export function collectStatusSnapshot(): StatusSnapshot {
   const authStore = ensureAuthStore(config.runtime.authStorePath);
   const defaultProfile = resolveDefaultOpenAICodexProfile(authStore);
   const defaultCredential = defaultProfile?.credential;
+  const configuredApiKey = config.agent.apiKey.trim();
+  const activeCredentialType = configuredApiKey
+    ? "token"
+    : (defaultCredential?.type ?? null);
+  const authSource = configuredApiKey ? "config_api_key" : defaultProfile ? "auth_store" : null;
   const recentLogs = tailLines(logPath, 10);
   const skillsDirStats = collectSkillsDirStats(config.runtime.skillsDirs);
   const allowedUsers = config.discord.allowedUserIds.length;
   const allowedGuilds = config.discord.allowedGuildIds.length;
   const tokenExpired =
-    defaultCredential?.type === "oauth"
+    configuredApiKey
+      ? null
+      : defaultCredential?.type === "oauth"
       ? Date.now() >= defaultCredential.expires
       : defaultCredential?.type === "token"
         ? Boolean(defaultCredential.expires && Date.now() >= defaultCredential.expires)
@@ -361,12 +402,19 @@ export function collectStatusSnapshot(): StatusSnapshot {
     },
     model: {
       model: config.agent.model,
+      baseUrl: config.agent.baseUrl,
       authStore: config.runtime.authStorePath,
       defaultProfileId: defaultProfile?.profileId ?? null,
       oauthProfileCount: Object.keys(authStore.profiles).length,
-      authUsable: Boolean(defaultProfile),
+      authUsable: Boolean(configuredApiKey || defaultProfile),
       tokenExpired,
-      credentialType: defaultCredential?.type ?? null,
+      credentialType: activeCredentialType,
+      authSource,
+      authSourceLabel: formatModelAuthSourceLabel(authSource),
+      authSummary: formatModelAuthSummary({
+        authSource,
+        credentialType: activeCredentialType,
+      }),
     },
     logs: recentLogs,
   };
@@ -423,6 +471,7 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
 
   lines.push(sectionTitle("Model"));
   lines.push(renderField("model", chalk.magenta(snapshot.model.model)));
+  lines.push(renderField("base url", chalk.green(snapshot.model.baseUrl)));
   lines.push(
     renderField(
       "default profile",
@@ -443,6 +492,13 @@ export function renderStatusText(snapshot: StatusSnapshot): string {
       snapshot.model.credentialType ? chalk.green(snapshot.model.credentialType) : chalk.dim("-"),
     ),
   );
+  lines.push(
+    renderField(
+      "auth source",
+      snapshot.model.authSourceLabel ? chalk.green(snapshot.model.authSourceLabel) : chalk.dim("-"),
+    ),
+  );
+  lines.push(renderField("auth summary", chalk.green(snapshot.model.authSummary)));
   lines.push(renderPathField("auth store", snapshot.model.authStore));
   lines.push("");
 
@@ -503,6 +559,7 @@ export function renderStatusPlainText(snapshot: StatusSnapshot): string {
 
   lines.push("Model");
   lines.push(`- model: ${snapshot.model.model}`);
+  lines.push(`- base url: ${snapshot.model.baseUrl}`);
   lines.push(`- default profile: ${snapshot.model.defaultProfileId ?? "-"}`);
   lines.push(`- profiles: ${snapshot.model.oauthProfileCount}`);
   lines.push(`- auth usable: ${snapshot.model.authUsable ? "yes" : "no"}`);
@@ -512,6 +569,8 @@ export function renderStatusPlainText(snapshot: StatusSnapshot): string {
     }`,
   );
   lines.push(`- credential type: ${snapshot.model.credentialType ?? "-"}`);
+  lines.push(`- auth source: ${snapshot.model.authSourceLabel}`);
+  lines.push(`- auth summary: ${snapshot.model.authSummary}`);
   lines.push(`- auth store: ${snapshot.model.authStore}`);
   lines.push("");
 

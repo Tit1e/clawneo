@@ -30,7 +30,6 @@ import {
 } from "../tools/scheduled-task-tools.js";
 import { createInstallSkillTool } from "../tools/skill-installer.js";
 
-const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
 const DEFAULT_CONTEXT_TOKENS = 272000;
 
 function resolveModelId(rawModel: string): { provider: string; modelId: string } {
@@ -48,7 +47,7 @@ function resolveModelId(rawModel: string): { provider: string; modelId: string }
   };
 }
 
-function resolveModel(modelRegistry: ModelRegistry, rawModel: string): Model<Api> {
+function resolveModel(modelRegistry: ModelRegistry, rawModel: string, baseUrl: string): Model<Api> {
   const { provider, modelId } = resolveModelId(rawModel);
   const discovered = modelRegistry.find(provider, modelId);
   if (discovered) {
@@ -64,7 +63,7 @@ function resolveModel(modelRegistry: ModelRegistry, rawModel: string): Model<Api
     name: modelId,
     api: "openai-codex-responses",
     provider,
-    baseUrl: DEFAULT_CODEX_BASE_URL,
+    baseUrl,
     reasoning: true,
     input: ["text", "image"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -224,7 +223,7 @@ export async function generateAgentReply(params: {
           },
   });
   const modelRegistry = new ModelRegistry(authStorage);
-  const model = resolveModel(modelRegistry, params.config.agent.model);
+  const model = resolveModel(modelRegistry, params.config.agent.model, params.config.agent.baseUrl);
   const apiKey = await modelRegistry.getApiKey(model);
   if (!apiKey) {
     throw new Error("Unable to resolve an OpenAI Codex access token from the configured OAuth profile.");
