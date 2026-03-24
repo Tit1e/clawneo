@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
+import { completeSimple, type Api, type Model } from "@mariozechner/pi-ai";
 import { collectStatusSnapshot } from "../cli/status.js";
 import { ensureClawneoConfigFile } from "../config/paths.js";
 import { isServiceRunning, restartService } from "../cli/service-manager.js";
@@ -14,6 +15,9 @@ const WEB_ROOT = path.join(__dirname, "web");
 type MutableConfig = Record<string, unknown> & {
   agent?: Record<string, unknown>;
 };
+
+const DEFAULT_BASE_URL = "https://chatgpt.com/backend-api";
+const DEFAULT_CONTEXT_TOKENS = 272000;
 
 function contentTypeFor(filePath: string): string {
   if (filePath.endsWith(".html")) {
@@ -102,6 +106,45 @@ function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown
   res.end(JSON.stringify(payload, null, 2));
 }
 
+function resolveString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function resolveModelId(rawModel: string): { provider: string; modelId: string } {
+  const trimmed = rawModel.trim();
+  if (!trimmed) {
+    return { provider: "openai-codex", modelId: "gpt-5.4" };
+  }
+  const separatorIndex = trimmed.indexOf("/");
+  if (separatorIndex <= 0) {
+    return { provider: "openai-codex", modelId: trimmed };
+  }
+  return {
+    provider: trimmed.slice(0, separatorIndex).trim() || "openai-codex",
+    modelId: trimmed.slice(separatorIndex + 1).trim() || "gpt-5.4",
+  };
+}
+
+function createCodexModel(rawModel: string, baseUrl: string): Model<Api> {
+  const { provider, modelId } = resolveModelId(rawModel);
+  if (provider !== "openai-codex") {
+    throw new Error(`Unsupported provider "${provider}". ClawNeo currently only supports openai-codex.`);
+  }
+
+  return {
+    id: modelId,
+    name: modelId,
+    api: "openai-codex-responses",
+    provider,
+    baseUrl,
+    reasoning: true,
+    input: ["text", "image"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: DEFAULT_CONTEXT_TOKENS,
+    maxTokens: DEFAULT_CONTEXT_TOKENS,
+  };
+}
+
 async function handleOpenAiConfigUpdate(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -164,6 +207,88 @@ async function handleOpenAiConfigUpdate(
   });
 }
 
+async function handleOpenAiConnectivityTest(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.includes("application/json")) {
+    sendJson(res, 415, { error: "content-type must be application/json" });
+    return;
+  }
+
+  let payload: {
+    apiKey?: unknown;
+    clearApiKey?: unknown;
+    baseUrl?: unknown;
+  };
+  try {
+    payload = JSON.parse(await readRequestBody(req)) as {
+      apiKey?: unknown;
+      clearApiKey?: unknown;
+      baseUrl?: unknown;
+    };
+  } catch {
+    sendJson(res, 400, { error: "invalid json body" });
+    return;
+  }
+
+  const { document } = readConfigDocument();
+  const agent = ensureObjectSection(document, "agent");
+  const clearApiKey = payload.clearApiKey === true;
+  const inputApiKey = resolveString(payload.apiKey);
+  const savedApiKey = resolveString(agent.apiKey);
+  const apiKey = clearApiKey ? inputApiKey : inputApiKey || savedApiKey;
+  const baseUrl = resolveString(payload.baseUrl, resolveString(agent.baseUrl, DEFAULT_BASE_URL));
+  const modelName = resolveString(agent.model, "gpt-5-codex");
+
+  if (!apiKey) {
+    sendJson(res, 400, { error: "没有可用的 API Key。请先输入 API Key，或先保存一个可用的 API Key。" });
+    return;
+  }
+
+  const model = createCodexModel(modelName, baseUrl);
+  const signal = AbortSignal.timeout(15000);
+
+  try {
+    const response = await completeSimple(
+      model,
+      {
+        messages: [{ role: "user", content: "Reply with exactly OK.", timestamp: Date.now() }],
+      },
+      {
+        apiKey,
+        transport: "auto",
+        signal,
+      },
+    );
+
+    const text = response.content
+      .filter((item) => item.type === "text")
+      .map((item) => item.text.trim())
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+
+    sendJson(res, 200, {
+      ok: true,
+      message: "连通性测试成功。",
+      responseText: text || "(empty response)",
+      model: modelName,
+      baseUrl,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    sendJson(res, 200, {
+      ok: false,
+      message: "连通性测试失败。",
+      error: message,
+      model: modelName,
+      baseUrl,
+    });
+  }
+}
+
 function tryOpenBrowser(url: string): void {
   if (process.env.CLAWNEO_UI_NO_OPEN === "1") {
     return;
@@ -209,6 +334,14 @@ export async function runUiServer(port = 3210): Promise<void> {
 
     if (url.pathname === "/api/openai-config" && req.method === "POST") {
       void handleOpenAiConfigUpdate(req, res).catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        sendJson(res, 500, { error: message });
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/openai-config/test" && req.method === "POST") {
+      void handleOpenAiConnectivityTest(req, res).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
         sendJson(res, 500, { error: message });
       });

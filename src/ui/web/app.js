@@ -231,6 +231,59 @@ async function saveOpenAiConfig(event) {
   }
 }
 
+async function testOpenAiConfig() {
+  const saveButton = document.getElementById("openai-config-save");
+  const testButton = document.getElementById("openai-config-test");
+  const apiKeyInput = document.getElementById("openai-api-key-input");
+  const baseUrlInput = document.getElementById("openai-base-url-input");
+  const clearApiKeyInput = document.getElementById("openai-clear-api-key-input");
+
+  if (!testButton || !apiKeyInput || !baseUrlInput || !clearApiKeyInput) {
+    return;
+  }
+
+  testButton.disabled = true;
+  if (saveButton) {
+    saveButton.disabled = true;
+  }
+  setStatusMessage("正在测试连通性...");
+
+  try {
+    const response = await fetch("/api/openai-config/test", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: apiKeyInput.value,
+        baseUrl: baseUrlInput.value,
+        clearApiKey: clearApiKeyInput.checked,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    if (payload.ok) {
+      const reply = payload.responseText ? ` 返回：${payload.responseText}` : "";
+      setStatusMessage(`${payload.message}${reply}`);
+      return;
+    }
+
+    setStatusMessage(`${payload.message} ${payload.error || ""}`.trim(), true);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatusMessage(`测试失败：${message}`, true);
+  } finally {
+    testButton.disabled = false;
+    if (saveButton) {
+      saveButton.disabled = false;
+    }
+  }
+}
+
 async function refresh() {
   const response = await fetch("/api/status", { cache: "no-store" });
   if (!response.ok) {
@@ -254,6 +307,12 @@ const configForm = document.getElementById("openai-config-form");
 if (configForm) {
   configForm.addEventListener("submit", (event) => {
     void saveOpenAiConfig(event);
+  });
+}
+const testButton = document.getElementById("openai-config-test");
+if (testButton) {
+  testButton.addEventListener("click", () => {
+    void testOpenAiConfig();
   });
 }
 setInterval(() => {

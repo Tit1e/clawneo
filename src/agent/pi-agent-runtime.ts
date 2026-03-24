@@ -150,6 +150,73 @@ function extractLatestUserPrompt(transcript: StoredMessage[]): string {
   return latest.content;
 }
 
+function summarizeMessageForDebug(message: unknown): Record<string, unknown> {
+  if (!message || typeof message !== "object") {
+    return { rawType: typeof message };
+  }
+
+  const candidate = message as {
+    role?: unknown;
+    stopReason?: unknown;
+    content?: unknown;
+    errorMessage?: unknown;
+  };
+
+  const contentSummary = Array.isArray(candidate.content)
+    ? candidate.content.map((item) => {
+        if (!item || typeof item !== "object") {
+          return { rawType: typeof item };
+        }
+        const block = item as {
+          type?: unknown;
+          text?: unknown;
+          thinking?: unknown;
+          name?: unknown;
+          arguments?: unknown;
+        };
+        return {
+          type: block.type,
+          text:
+            typeof block.text === "string"
+              ? block.text.slice(0, 200)
+              : typeof block.thinking === "string"
+                ? block.thinking.slice(0, 200)
+                : undefined,
+          name: typeof block.name === "string" ? block.name : undefined,
+          hasArguments: block.arguments !== undefined,
+        };
+      })
+    : candidate.content;
+
+  return {
+    role: candidate.role,
+    stopReason: candidate.stopReason,
+    errorMessage: candidate.errorMessage,
+    content: contentSummary,
+  };
+}
+
+function logSessionMessagesDebug(
+  sessionKey: string,
+  sessionMessages: Array<{ role: string; content?: unknown; stopReason?: unknown; errorMessage?: unknown }>,
+): void {
+  const tail = sessionMessages.slice(-5).map((message, index) => ({
+    indexFromTail: sessionMessages.slice(-5).length - 1 - index,
+    ...summarizeMessageForDebug(message),
+  }));
+
+  const latestAssistant = [...sessionMessages]
+    .reverse()
+    .find((message) => message.role === "assistant");
+
+  console.error(`[conversation] debug session=${sessionKey} messageTail=${JSON.stringify(tail)}`);
+  console.error(
+    `[conversation] debug session=${sessionKey} latestAssistant=${JSON.stringify(
+      summarizeMessageForDebug(latestAssistant),
+    )}`,
+  );
+}
+
 function extractReply(sessionMessages: Array<{ role: string; content?: unknown }>): string {
   const latestAssistant = [...sessionMessages]
     .reverse()
@@ -305,8 +372,23 @@ export async function generateAgentReply(params: {
     if (params.signal?.aborted) {
       throw new Error("Request was cancelled");
     }
+    let reply: string;
+    try {
+      reply = extractReply(session.state.messages);
+    } catch (error) {
+      logSessionMessagesDebug(
+        params.sessionKey,
+        session.state.messages as Array<{
+          role: string;
+          content?: unknown;
+          stopReason?: unknown;
+          errorMessage?: unknown;
+        }>,
+      );
+      throw error;
+    }
     return {
-      reply: extractReply(session.state.messages),
+      reply,
       toolEvents,
     };
   } finally {

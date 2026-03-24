@@ -182,6 +182,13 @@ code {
   justify-content: space-between;
 }
 
+.button-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .form-actions button {
   border: 0;
   border-radius: 999px;
@@ -191,6 +198,12 @@ code {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.form-actions button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, white 72%);
 }
 
 .form-actions button:disabled {

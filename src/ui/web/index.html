@@ -142,7 +142,10 @@
             <span>清空当前 API Key</span>
           </label>
           <div class="form-actions">
-            <button id="openai-config-save" type="submit">保存 OpenAI 配置</button>
+            <div class="button-row">
+              <button id="openai-config-save" type="submit">保存 OpenAI 配置</button>
+              <button id="openai-config-test" type="button" class="secondary">测试 API Key 连通性</button>
+            </div>
             <div id="openai-config-status" class="muted">-</div>
           </div>
         </form>
