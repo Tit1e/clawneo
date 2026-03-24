@@ -237,8 +237,9 @@ async function testOpenAiConfig() {
   const apiKeyInput = document.getElementById("openai-api-key-input");
   const baseUrlInput = document.getElementById("openai-base-url-input");
   const clearApiKeyInput = document.getElementById("openai-clear-api-key-input");
+  const promptInput = document.getElementById("openai-test-prompt-input");
 
-  if (!testButton || !apiKeyInput || !baseUrlInput || !clearApiKeyInput) {
+  if (!testButton || !apiKeyInput || !baseUrlInput || !clearApiKeyInput || !promptInput) {
     return;
   }
 
@@ -258,6 +259,7 @@ async function testOpenAiConfig() {
         apiKey: apiKeyInput.value,
         baseUrl: baseUrlInput.value,
         clearApiKey: clearApiKeyInput.checked,
+        prompt: promptInput.value,
       }),
     });
 

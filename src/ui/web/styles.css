@@ -164,7 +164,24 @@ code {
   font: inherit;
 }
 
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 252, 246, 0.92);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+  min-height: 88px;
+}
+
 .field input:focus {
+  outline: 2px solid rgba(15, 90, 118, 0.18);
+  border-color: var(--accent);
+}
+
+.field textarea:focus {
   outline: 2px solid rgba(15, 90, 118, 0.18);
   border-color: var(--accent);
 }
