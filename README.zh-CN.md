@@ -57,6 +57,11 @@ clawneo config
 - 模型
 - OAuth 授权
 
+说明：
+- API Key 模式主要用于 OpenAI-compatible `responses` 接口
+- OAuth 模式继续使用 Codex 路径
+- 如果你配置了自定义接口，ClawNeo 运行时会优先使用你配置的 `Base URL`
+
 主配置文件默认位于：
 
 ```text
@@ -86,6 +91,11 @@ clawneo ui
 ```text
 http://127.0.0.1:3210
 ```
+
+本地 UI 会展示当前认证来源和 Base URL，并支持：
+- 修改 OpenAI API Key
+- 修改 OpenAI Base URL
+- 测试当前 API Key 配置的连通性
 
 ## Discord 系统命令
 

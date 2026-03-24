@@ -29,6 +29,7 @@ ClawNeo supports both plain-text `/xxx` messages and native Discord slash comman
 | Command | Description |
 | --- | --- |
 | `/help` | Show available system commands |
+| `/version` | Show the current ClawNeo version |
 | `/status` | Check service or bot status |
 | `/cancel` | Abort the current running task in the current Discord session |
 | `/update` | Update ClawNeo in the background and restart the service |

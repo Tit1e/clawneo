@@ -23,6 +23,8 @@ clawneo config
 The interactive config flow lets you manage:
 
 - OpenAI authorization
+- OpenAI API key
+- OpenAI Base URL
 - Discord bot token
 - allowed Discord user IDs
 - allowed Discord guild IDs
@@ -33,7 +35,9 @@ The interactive config flow lets you manage:
 
 To get a working Discord-connected assistant, you need:
 
-1. an authorized OpenAI Codex profile
+1. a working OpenAI setup
+   - an API key, or
+   - an authorized OpenAI Codex profile
 2. a Discord bot token
 3. at least one Discord access scope
    - allowed user IDs, or
@@ -61,7 +65,10 @@ A minimal example looks like this:
 
 ## OpenAI authorization
 
-ClawNeo uses OpenAI Codex OAuth.
+ClawNeo supports two OpenAI connection modes:
+
+- API key
+- OpenAI Codex OAuth
 
 From the CLI, open:
 
@@ -69,11 +76,19 @@ From the CLI, open:
 clawneo config
 ```
 
-Then choose:
+Then choose `OpenAI Settings`, where you can configure:
 
 ```text
-OpenAI Settings -> Authorize OpenAI
+model
+API Key
+Base URL
+Authorize OpenAI
 ```
+
+Behavior notes:
+- API key mode is intended for OpenAI-compatible `responses` endpoints
+- OAuth mode continues to use the Codex path
+- if you configure a custom endpoint, ClawNeo uses the configured `Base URL` at runtime
 
 Related local files:
 
@@ -102,12 +117,15 @@ Behavior notes:
 Common fields:
 
 - `agent.model`
+- `agent.apiKey`
+- `agent.baseUrl`
 - `agent.workspaceRoot`
 - `agent.toolCwd`
 
 Defaults:
 
 - model: `gpt-5-codex`
+- base URL: `https://chatgpt.com/backend-api`
 - workspace root: `~/.clawneo/workspace`
 - tool cwd: current user's home directory
 
@@ -151,6 +169,8 @@ ClawNeo supports environment-variable overrides for common paths and runtime beh
 ### Agent and shell
 
 - `CLAWNEO_MODEL`
+- `CLAWNEO_API_KEY`
+- `CLAWNEO_BASE_URL`
 - `CLAWNEO_SHELL`
 - `CLAWNEO_UI_NO_OPEN=1`
 

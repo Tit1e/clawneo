@@ -8,7 +8,7 @@ ClawNeo is a personal AI assistant CLI with a Discord bridge.
 
 It supports:
 - chatting with the assistant through Discord
-- OpenAI Codex OAuth
+- OpenAI Codex OAuth or API key
 - `read` / `ls` / `grep` / `bash` tools
 - natural-language reminder tasks in Discord (experimental)
 - structured user preferences
@@ -50,7 +50,17 @@ clawneo --version
 clawneo config
 ```
 
-To authorize or re-authorize OpenAI at any time, open `clawneo config` and select `OpenAI Settings` -> `Authorize OpenAI`.
+To configure OpenAI at any time, open `clawneo config` and select `OpenAI Settings`.
+You can configure:
+- API key
+- Base URL
+- model
+- OAuth authorization
+
+Notes:
+- API key mode is intended for OpenAI-compatible `responses` endpoints
+- OAuth mode continues to use the Codex path
+- if you use a custom endpoint, ClawNeo respects the configured `Base URL` at runtime
 
 The main config file is stored at:
 
@@ -82,6 +92,11 @@ Default address:
 http://127.0.0.1:3210
 ```
 
+The UI shows the active auth source and Base URL, and lets you:
+- edit OpenAI API key
+- edit OpenAI Base URL
+- run a connectivity test for the current API key configuration
+
 ## Discord System Commands
 
 ClawNeo supports both plain text `/xxx` messages and native Discord slash commands. When you type `/` in Discord, these commands should appear with built-in descriptions.
@@ -90,6 +105,7 @@ Supported commands:
 
 ```text
 /help
+/version
 /status
 /cancel
 /update
@@ -99,6 +115,7 @@ Supported commands:
 
 Notes:
 - these commands bypass the model
+- `/version` returns the currently running ClawNeo version
 - `/cancel` aborts the current running task for the current Discord session
 - `/update` runs `npm install -g clawneo@latest` in the background and then restarts the service
 - `/stop` will take the bot offline
