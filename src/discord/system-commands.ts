@@ -5,12 +5,16 @@ import type {
   Message,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
+import { createRequire } from "node:module";
 import { SlashCommandBuilder } from "discord.js";
 import { collectStatusSnapshot, renderStatusPlainText } from "../cli/status.js";
 import { runDetachedServiceCommand, runDetachedUpdateCommand } from "../cli/service-manager.js";
 import { resolveSessionKey } from "../core/session-key.js";
 import type { AppConfig, InboundMessage } from "../core/types.js";
 import { sendChunkedDiscordReply } from "./reply.js";
+
+const require = createRequire(import.meta.url);
+const packageVersion = String((require("../../package.json") as { version?: string }).version || "unknown");
 
 type SystemCommandContext = {
   config: AppConfig;
@@ -50,6 +54,7 @@ export function renderSystemCommandHelp(): string {
     "ClawNeo 系统命令：",
     "",
     "- /help：查看这份命令说明",
+    "- /version：查看当前 ClawNeo 版本",
     "- /status：查看当前服务状态",
     "- /cancel：取消当前会话正在运行的任务",
     "- /update：升级到最新版本并重启服务",
@@ -72,6 +77,11 @@ export async function handleSystemCommand(context: SystemCommandContext): Promis
   if (command === "status") {
     const statusText = renderStatusPlainText(collectStatusSnapshot());
     await context.reply(statusText);
+    return true;
+  }
+
+  if (command === "version") {
+    await context.reply(`当前 ClawNeo 版本：${packageVersion}`);
     return true;
   }
 
@@ -110,6 +120,7 @@ export async function handleSystemCommand(context: SystemCommandContext): Promis
 export function createSlashCommandDefinitions(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   return [
     new SlashCommandBuilder().setName("help").setDescription("查看 ClawNeo 系统命令说明"),
+    new SlashCommandBuilder().setName("version").setDescription("查看当前 ClawNeo 版本"),
     new SlashCommandBuilder().setName("status").setDescription("查看当前 ClawNeo 服务状态"),
     new SlashCommandBuilder().setName("cancel").setDescription("取消当前会话正在运行的任务"),
     new SlashCommandBuilder().setName("update").setDescription("升级到最新版本并自动重启服务"),

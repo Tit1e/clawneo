@@ -113,28 +113,31 @@ function resolveString(value: unknown, fallback = ""): string {
 function resolveModelId(rawModel: string): { provider: string; modelId: string } {
   const trimmed = rawModel.trim();
   if (!trimmed) {
-    return { provider: "openai-codex", modelId: "gpt-5.4" };
+    return { provider: "openai", modelId: "gpt-5.4" };
   }
   const separatorIndex = trimmed.indexOf("/");
   if (separatorIndex <= 0) {
-    return { provider: "openai-codex", modelId: trimmed };
+    return { provider: "openai", modelId: trimmed };
   }
   return {
-    provider: trimmed.slice(0, separatorIndex).trim() || "openai-codex",
+    provider:
+      trimmed.slice(0, separatorIndex).trim() === "openai-codex"
+        ? "openai"
+        : trimmed.slice(0, separatorIndex).trim() || "openai",
     modelId: trimmed.slice(separatorIndex + 1).trim() || "gpt-5.4",
   };
 }
 
 function createCodexModel(rawModel: string, baseUrl: string): Model<Api> {
   const { provider, modelId } = resolveModelId(rawModel);
-  if (provider !== "openai-codex") {
-    throw new Error(`Unsupported provider "${provider}". ClawNeo currently only supports openai-codex.`);
+  if (provider !== "openai") {
+    throw new Error(`Unsupported provider "${provider}". API Key test currently only supports openai.`);
   }
 
   return {
     id: modelId,
     name: modelId,
-    api: "openai-codex-responses",
+    api: "openai-responses",
     provider,
     baseUrl,
     reasoning: true,
@@ -270,10 +273,22 @@ async function handleOpenAiConnectivityTest(
       .join("\n\n")
       .trim();
 
+    if (!text) {
+      sendJson(res, 200, {
+        ok: false,
+        message: "连通性测试失败。",
+        error: "接口已连通，但没有返回文本内容。当前 Base URL 可能不兼容 openai-codex-responses。",
+        responseText: "(empty response)",
+        model: modelName,
+        baseUrl,
+      });
+      return;
+    }
+
     sendJson(res, 200, {
       ok: true,
       message: "连通性测试成功。",
-      responseText: text || "(empty response)",
+      responseText: text,
       model: modelName,
       baseUrl,
     });

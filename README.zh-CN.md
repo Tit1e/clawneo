@@ -95,6 +95,7 @@ ClawNeo 现在同时支持普通文本 `/xxx` 命令和 Discord 原生 slash com
 
 ```text
 /help
+/version
 /status
 /cancel
 /update
@@ -104,6 +105,7 @@ ClawNeo 现在同时支持普通文本 `/xxx` 命令和 Discord 原生 slash com
 
 说明：
 - 这些命令不经过模型
+- `/version` 会返回当前运行中的 ClawNeo 版本
 - `/cancel` 会取消当前 Discord 会话里正在运行的任务
 - `/update` 会在后台执行 `npm install -g clawneo@latest`，完成后自动重启服务
 - `/stop` 后 bot 会离线

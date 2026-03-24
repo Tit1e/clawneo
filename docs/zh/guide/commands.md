@@ -29,6 +29,7 @@ ClawNeo 同时支持普通文本 `/xxx` 消息和原生 Discord 斜杠命令。
 | 命令 | 说明 |
 | --- | --- |
 | `/help` | 查看可用系统命令 |
+| `/version` | 查看当前 ClawNeo 版本 |
 | `/status` | 查看服务或机器人状态 |
 | `/cancel` | 中止当前 Discord 会话里正在执行的任务 |
 | `/update` | 在后台更新 ClawNeo 并重启服务 |

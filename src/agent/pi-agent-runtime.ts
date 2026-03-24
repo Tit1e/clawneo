@@ -18,6 +18,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { resolveOpenAICodexCredential } from "../auth/openai-codex-oauth.js";
+import type { AuthProfileCredential } from "../auth/types.js";
 import type { AppConfig, ModelReplyResult, StoredMessage, ToolExecutionRecord } from "../core/types.js";
 import type { ToolRequestContext } from "../core/types.js";
 import type { ScheduledTaskStore } from "../scheduled-tasks/store.js";
@@ -32,26 +33,59 @@ import { createInstallSkillTool } from "../tools/skill-installer.js";
 
 const DEFAULT_CONTEXT_TOKENS = 272000;
 
-function resolveModelId(rawModel: string): { provider: string; modelId: string } {
+function resolveModelId(rawModel: string, credential: AuthProfileCredential): { provider: string; modelId: string } {
   const trimmed = rawModel.trim();
   if (!trimmed) {
-    return { provider: "openai-codex", modelId: "gpt-5.4" };
+    return {
+      provider: credential.type === "token" ? "openai" : "openai-codex",
+      modelId: "gpt-5.4",
+    };
   }
   const separatorIndex = trimmed.indexOf("/");
   if (separatorIndex <= 0) {
-    return { provider: "openai-codex", modelId: trimmed };
+    return {
+      provider: credential.type === "token" ? "openai" : "openai-codex",
+      modelId: trimmed,
+    };
   }
+  const rawProvider = trimmed.slice(0, separatorIndex).trim();
   return {
-    provider: trimmed.slice(0, separatorIndex).trim() || "openai-codex",
+    provider:
+      credential.type === "token"
+        ? (rawProvider === "openai-codex" ? "openai" : rawProvider || "openai")
+        : rawProvider || "openai-codex",
     modelId: trimmed.slice(separatorIndex + 1).trim() || "gpt-5.4",
   };
 }
 
-function resolveModel(modelRegistry: ModelRegistry, rawModel: string, baseUrl: string): Model<Api> {
-  const { provider, modelId } = resolveModelId(rawModel);
+function resolveModel(
+  modelRegistry: ModelRegistry,
+  rawModel: string,
+  baseUrl: string,
+  credential: AuthProfileCredential,
+): Model<Api> {
+  const { provider, modelId } = resolveModelId(rawModel, credential);
   const discovered = modelRegistry.find(provider, modelId);
   if (discovered) {
     return discovered;
+  }
+
+  if (credential.type === "token") {
+    if (provider !== "openai") {
+      throw new Error(`Unsupported provider "${provider}". API Key mode currently only supports openai.`);
+    }
+    return {
+      id: modelId,
+      name: modelId,
+      api: "openai-responses",
+      provider,
+      baseUrl,
+      reasoning: true,
+      input: ["text", "image"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: DEFAULT_CONTEXT_TOKENS,
+      maxTokens: DEFAULT_CONTEXT_TOKENS,
+    };
   }
 
   if (provider !== "openai-codex") {
@@ -221,7 +255,7 @@ function extractReply(sessionMessages: Array<{ role: string; content?: unknown }
   const latestAssistant = [...sessionMessages]
     .reverse()
     .find((message) => message.role === "assistant") as
-    | { role: "assistant"; content?: Array<{ type?: string; text?: string }> }
+    | { role: "assistant"; content?: Array<{ type?: string; text?: string; thinking?: string; name?: string }> }
     | undefined;
 
   if (!latestAssistant || !Array.isArray(latestAssistant.content)) {
@@ -236,7 +270,13 @@ function extractReply(sessionMessages: Array<{ role: string; content?: unknown }
     .trim();
 
   if (!text) {
-    throw new Error("Agent session did not produce text output.");
+    const contentTypes = latestAssistant.content
+      .map((item) => item?.type)
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `Model response did not contain text output. contentTypes=${contentTypes || "none"}. The configured Base URL may not be compatible with openai-codex-responses.`,
+    );
   }
   return text;
 }
@@ -276,24 +316,36 @@ export async function generateAgentReply(params: {
 }): Promise<ModelReplyResult> {
   const credential = await resolveOpenAICodexCredential(params.config);
   const authStorage = AuthStorage.inMemory({
-    "openai-codex":
-      credential.type === "oauth"
-        ? {
-            type: "oauth",
+    ...(credential.type === "oauth"
+      ? {
+          "openai-codex": {
+            type: "oauth" as const,
             access: credential.access,
             refresh: credential.refresh,
             expires: credential.expires,
-          }
-        : {
-            type: "api_key",
+          },
+        }
+      : {
+          openai: {
+            type: "api_key" as const,
             key: credential.token,
           },
+          "openai-codex": {
+            type: "api_key" as const,
+            key: credential.token,
+          },
+        }),
   });
   const modelRegistry = new ModelRegistry(authStorage);
-  const model = resolveModel(modelRegistry, params.config.agent.model, params.config.agent.baseUrl);
+  const model = resolveModel(
+    modelRegistry,
+    params.config.agent.model,
+    params.config.agent.baseUrl,
+    credential,
+  );
   const apiKey = await modelRegistry.getApiKey(model);
   if (!apiKey) {
-    throw new Error("Unable to resolve an OpenAI Codex access token from the configured OAuth profile.");
+    throw new Error("Unable to resolve an API credential for the configured model.");
   }
 
   const resourceLoader = buildResourceLoader(
